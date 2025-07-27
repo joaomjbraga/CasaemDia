@@ -1,6 +1,6 @@
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface Task {
   id: number;
@@ -17,9 +17,57 @@ interface TasksCardProps {
   totalTasks: number;
   theme: any;
   isDark: boolean;
+  toggleTask: (id: number) => void;
+  addTask: (title: string, assignee: string, points: number) => void;
+  deleteTask: (id: number) => void;
 }
 
-export default function TasksCard({ tasks, progressPercentage, completedTasks, totalTasks, theme, isDark }: TasksCardProps) {
+export default function TasksCard({
+  tasks,
+  progressPercentage,
+  completedTasks,
+  totalTasks,
+  theme,
+  isDark,
+  toggleTask,
+  addTask,
+  deleteTask,
+}: TasksCardProps) {
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState('');
+  const [newTaskPoints, setNewTaskPoints] = useState('');
+
+  const handleAddTask = () => {
+    if (!newTaskTitle || !newTaskAssignee || !newTaskPoints) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      return;
+    }
+    const points = parseInt(newTaskPoints);
+    if (isNaN(points) || points <= 0) {
+      Alert.alert('Erro', 'Os pontos devem ser um número maior que zero.');
+      return;
+    }
+    addTask(newTaskTitle, newTaskAssignee, points);
+    setNewTaskTitle('');
+    setNewTaskAssignee('');
+    setNewTaskPoints('');
+  };
+
+  const handleDeleteTask = (id: number) => {
+    Alert.alert(
+      'Excluir Tarefa',
+      'Tem certeza que deseja excluir esta tarefa?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          onPress: () => deleteTask(id),
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+
   return (
     <View style={[styles.tasksCard, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]}>
       <View style={styles.sectionHeader}>
@@ -45,18 +93,15 @@ export default function TasksCard({ tasks, progressPercentage, completedTasks, t
 
       <View style={styles.tasksList}>
         {tasks.map((task) => (
-          <TouchableOpacity
-            key={task.id}
-            style={[styles.taskItem, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA' }]}
-            activeOpacity={0.7}
-          >
-            <View
+          <View key={task.id} style={[styles.taskItem, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA' }]}>
+            <TouchableOpacity
+              onPress={() => toggleTask(task.id)}
               style={[styles.checkbox, { borderColor: task.done ? theme.tint : theme.tabIconDefault, backgroundColor: task.done ? theme.tint : 'transparent' }]}
             >
               {task.done && (
                 <MaterialCommunityIcons name="check" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={14} />
               )}
-            </View>
+            </TouchableOpacity>
             <View style={styles.taskContent}>
               <Text
                 style={[styles.taskText, { textDecorationLine: task.done ? 'line-through' : 'none', color: task.done ? theme.tabIconDefault : theme.text }]}
@@ -71,15 +116,43 @@ export default function TasksCard({ tasks, progressPercentage, completedTasks, t
                 </View>
               </View>
             </View>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleDeleteTask(task.id)} style={styles.deleteButton}>
+              <MaterialCommunityIcons name="delete" size={20} color={theme.tabIconDefault} />
+            </TouchableOpacity>
+          </View>
         ))}
       </View>
 
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={[styles.addTaskButton, { backgroundColor: theme.tint }]} activeOpacity={0.8}>
+      <View style={styles.newTaskForm}>
+        <TextInput
+          style={[styles.input, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA', color: theme.text }]}
+          placeholder="Título da tarefa"
+          placeholderTextColor={theme.tabIconDefault}
+          value={newTaskTitle}
+          onChangeText={setNewTaskTitle}
+        />
+        <TextInput
+          style={[styles.input, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA', color: theme.text }]}
+          placeholder="Responsável"
+          placeholderTextColor={theme.tabIconDefault}
+          value={newTaskAssignee}
+          onChangeText={setNewTaskAssignee}
+        />
+        <TextInput
+          style={[styles.input, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA', color: theme.text }]}
+          placeholder="Pontos"
+          placeholderTextColor={theme.tabIconDefault}
+          value={newTaskPoints}
+          onChangeText={setNewTaskPoints}
+          keyboardType="numeric"
+        />
+        <TouchableOpacity style={[styles.addTaskButton, { backgroundColor: theme.tint }]} onPress={handleAddTask}>
           <MaterialCommunityIcons name="plus" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={18} />
-          <Text style={[styles.addTaskText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>Nova Tarefa</Text>
+          <Text style={[styles.addTaskText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>Adicionar Tarefa</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.actionButtons}>
         <TouchableOpacity style={[styles.secondaryButton, { borderColor: theme.tabIconDefault }]} activeOpacity={0.8}>
           <MaterialCommunityIcons name="calendar" color={theme.tabIconDefault} size={18} />
           <Text style={[styles.secondaryButtonText, { color: theme.tabIconDefault }]}>Agendar</Text>
@@ -190,9 +263,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
+  deleteButton: {
+    padding: 8,
+  },
+  newTaskForm: {
+    marginBottom: 20,
+  },
+  input: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    fontSize: 14,
   },
   addTaskButton: {
     flex: 2,
@@ -207,6 +288,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
     fontSize: 15,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
   },
   secondaryButton: {
     flex: 1,
