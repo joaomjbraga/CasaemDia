@@ -1,4 +1,5 @@
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -8,6 +9,7 @@ interface Task {
   done: boolean;
   assignee: string;
   points: number;
+  due_date: string | null;
 }
 
 interface TasksCardProps {
@@ -18,7 +20,7 @@ interface TasksCardProps {
   theme: any;
   isDark: boolean;
   toggleTask: (id: number) => void;
-  addTask: (title: string, assignee: string, points: number) => void;
+  addTask: (title: string, assignee: string, points: number, due_date: string | null) => void;
   deleteTask: (id: number) => void;
 }
 
@@ -36,6 +38,8 @@ export default function TasksCard({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
   const [newTaskPoints, setNewTaskPoints] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleAddTask = () => {
     if (!newTaskTitle || !newTaskAssignee || !newTaskPoints) {
@@ -47,10 +51,12 @@ export default function TasksCard({
       Alert.alert('Erro', 'Os pontos devem ser um número maior que zero.');
       return;
     }
-    addTask(newTaskTitle, newTaskAssignee, points);
+    const dueDate = newTaskDueDate ? newTaskDueDate.toISOString() : null;
+    addTask(newTaskTitle, newTaskAssignee, points, dueDate);
     setNewTaskTitle('');
     setNewTaskAssignee('');
     setNewTaskPoints('');
+    setNewTaskDueDate(null);
   };
 
   const handleDeleteTask = (id: number) => {
@@ -66,6 +72,22 @@ export default function TasksCard({
         },
       ]
     );
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setNewTaskDueDate(selectedDate);
+    }
+  };
+
+  const formatDate = (date: string | null) => {
+    if (!date) return 'Sem data';
+    return new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   };
 
   return (
@@ -115,6 +137,7 @@ export default function TasksCard({
                   <Text style={[styles.taskPointsText, { color: '#FF8C42' }]}>{task.points} pts</Text>
                 </View>
               </View>
+              <Text style={[styles.taskDueDate, { color: theme.tabIconDefault }]}>Vence em: {formatDate(task.due_date)}</Text>
             </View>
             <TouchableOpacity onPress={() => handleDeleteTask(task.id)} style={styles.deleteButton}>
               <MaterialCommunityIcons name="delete" size={20} color={theme.tabIconDefault} />
@@ -146,16 +169,28 @@ export default function TasksCard({
           onChangeText={setNewTaskPoints}
           keyboardType="numeric"
         />
+        <TouchableOpacity
+          style={[styles.secondaryButton, { borderColor: theme.tabIconDefault }]}
+          onPress={() => setShowDatePicker(true)}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="calendar" color={theme.tabIconDefault} size={18} />
+          <Text style={[styles.secondaryButtonText, { color: theme.tabIconDefault }]}>
+            {newTaskDueDate ? formatDate(newTaskDueDate.toISOString()) : 'Selecionar Data'}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker
+            value={newTaskDueDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            minimumDate={new Date()}
+          />
+        )}
         <TouchableOpacity style={[styles.addTaskButton, { backgroundColor: theme.tint }]} onPress={handleAddTask}>
           <MaterialCommunityIcons name="plus" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={18} />
           <Text style={[styles.addTaskText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>Adicionar Tarefa</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={[styles.secondaryButton, { borderColor: theme.tabIconDefault }]} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="calendar" color={theme.tabIconDefault} size={18} />
-          <Text style={[styles.secondaryButtonText, { color: theme.tabIconDefault }]}>Agendar</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -263,6 +298,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
+  taskDueDate: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+  },
   deleteButton: {
     padding: 8,
   },
@@ -288,10 +328,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
     fontSize: 15,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
   },
   secondaryButton: {
     flex: 1,

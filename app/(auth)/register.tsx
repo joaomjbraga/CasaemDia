@@ -1,19 +1,21 @@
+import Colors from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+
+import { FontAwesome } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
   useColorScheme,
+  View,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'expo-router';
-import Colors from '@/constants/Colors';
-import { FontAwesome } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -24,67 +26,67 @@ export default function RegisterScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
+  const validatePassword = (pwd: string) => {
+    const hasLetter = /[a-zA-Z]/.test(pwd);
+    const hasNumber = /\d/.test(pwd);
+    return pwd.length >= 6 && hasLetter && hasNumber;
+  };
+
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
 
-    if (!email.includes('@')) {
-      Alert.alert('Erro', 'Por favor, insira um email válido');
+    if (!email.includes('@') || !email.includes('.')) {
+      Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres, incluindo letras e números.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas não coincidem');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      Alert.alert('Erro', 'As senhas não coincidem.');
       return;
     }
 
     setLoading(true);
-    
     try {
       const { error } = await signUp(email, password);
-      
       if (error) {
-        let errorMessage = 'Erro ao criar conta';
-        
-        if (error.message) {
-          if (error.message.includes('User already registered')) {
-            errorMessage = 'Este email já está cadastrado';
-          } else if (error.message.includes('Password should be at least')) {
-            errorMessage = 'A senha deve ter pelo menos 6 caracteres';
-          } else if (error.message.includes('Invalid email')) {
-            errorMessage = 'Email inválido';
-          } else {
-            errorMessage = error.message;
-          }
+        let errorMessage = 'Erro ao criar conta.';
+        if (error.message.includes('User already registered')) {
+          errorMessage = 'Este e-mail já está cadastrado.';
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'E-mail inválido.';
+        } else {
+          errorMessage = error.message;
         }
-        
         Alert.alert('Erro', errorMessage);
       } else {
         Alert.alert(
           'Conta criada com sucesso!',
-          'Verifique seu email para ativar a conta antes de fazer login.',
+          'Você foi logado automaticamente.',
           [
-            { 
-              text: 'OK', 
+            {
+              text: 'OK',
               onPress: () => {
                 setEmail('');
                 setPassword('');
                 setConfirmPassword('');
-              }
-            }
+              },
+            },
           ]
         );
       }
     } catch (error) {
       console.error('Erro inesperado no registro:', error);
-      Alert.alert('Erro', 'Erro inesperado. Tente novamente');
+      Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -133,6 +135,8 @@ export default function RegisterScreen() {
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
       elevation: 5,
+      flexDirection: 'row',
+      gap: 8,
     },
     buttonDisabled: {
       opacity: 0.6,
@@ -156,20 +160,16 @@ export default function RegisterScreen() {
   });
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.form}>
-
-        <View style={{alignItems: 'center', justifyContent: 'center', gap: 10}}>
-          <FontAwesome name='user-plus' color={colors.tint} size={100} /> 
+        <View style={{ alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <FontAwesome name="user-plus" color={colors.tint} size={100} />
           <Text style={styles.title}>Criar Conta</Text>
         </View>
-        
+
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder="E-mail"
           placeholderTextColor={colors.tabIconDefault}
           value={email}
           onChangeText={(text) => setEmail(text.trim())}
@@ -178,10 +178,10 @@ export default function RegisterScreen() {
           autoComplete="email"
           editable={!loading}
         />
-        
+
         <TextInput
           style={styles.input}
-          placeholder="Senha (mín. 6 caracteres)"
+          placeholder="Senha (mín. 6 caracteres, letras e números)"
           placeholderTextColor={colors.tabIconDefault}
           value={password}
           onChangeText={setPassword}
@@ -189,7 +189,7 @@ export default function RegisterScreen() {
           autoComplete="new-password"
           editable={!loading}
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder="Confirmar Senha"
@@ -200,24 +200,21 @@ export default function RegisterScreen() {
           autoComplete="new-password"
           editable={!loading}
         />
-        
+
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleRegister}
           disabled={loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Criando conta...' : 'Criar Conta'}
-          </Text>
+          {loading && <ActivityIndicator size="small" color={colorScheme === 'dark' ? '#000' : '#FFFFFF'} />}
+          <Text style={styles.buttonText}>{loading ? 'Criando conta...' : 'Criar Conta'}</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.links}>
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity disabled={loading}>
-              <Text style={[styles.linkText, loading && styles.linkDisabled]}>
-                Já tem conta? Entrar
-              </Text>
+              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Já tem conta? Entrar</Text>
             </TouchableOpacity>
           </Link>
         </View>

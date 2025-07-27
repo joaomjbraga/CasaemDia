@@ -1,19 +1,20 @@
+import Colors from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { FontAwesome } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
   useColorScheme,
+  View,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'expo-router';
-import Colors from '@/constants/Colors';
-import { FontAwesome } from '@expo/vector-icons'
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -25,40 +26,32 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
 
-    if (!email.includes('@')) {
-      Alert.alert('Erro', 'Por favor, insira um email válido');
+    if (!email.includes('@') || !email.includes('.')) {
+      Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
       return;
     }
 
     setLoading(true);
-    
     try {
       const { error } = await signIn(email, password);
-      
       if (error) {
-        let errorMessage = 'Erro ao fazer login';
-        
-        if (error.message) {
-          if (error.message.includes('Invalid login credentials')) {
-            errorMessage = 'Email ou senha incorretos';
-          } else if (error.message.includes('Email not confirmed')) {
-            errorMessage = 'Email não confirmado. Verifique sua caixa de entrada';
-          } else if (error.message.includes('Too many requests')) {
-            errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos';
-          } else {
-            errorMessage = error.message;
-          }
+        let errorMessage = 'Erro ao fazer login.';
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'E-mail ou senha incorretos.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+        } else {
+          errorMessage = error.message;
         }
-        
         Alert.alert('Erro', errorMessage);
       }
     } catch (error) {
       console.error('Erro inesperado no login:', error);
-      Alert.alert('Erro', 'Erro inesperado. Tente novamente');
+      Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -107,6 +100,8 @@ export default function LoginScreen() {
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
       elevation: 5,
+      flexDirection: 'row',
+      gap: 8,
     },
     buttonDisabled: {
       opacity: 0.6,
@@ -131,19 +126,16 @@ export default function LoginScreen() {
   });
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.form}>
-        <View style={{alignItems: 'center', justifyContent: 'center', gap: 10}}>
-          <FontAwesome name='user-circle' color={colors.tint} size={100} /> 
+        <View style={{ alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <FontAwesome name="user-circle" color={colors.tint} size={100} />
           <Text style={styles.title}>Entrar</Text>
         </View>
-        
+
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder="E-mail"
           placeholderTextColor={colors.tabIconDefault}
           value={email}
           onChangeText={(text) => setEmail(text.trim())}
@@ -152,7 +144,7 @@ export default function LoginScreen() {
           autoComplete="email"
           editable={!loading}
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder="Senha"
@@ -163,32 +155,27 @@ export default function LoginScreen() {
           autoComplete="password"
           editable={!loading}
         />
-        
+
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleLogin}
           disabled={loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Entrando...' : 'Entrar'}
-          </Text>
+          {loading && <ActivityIndicator size="small" color={colorScheme === 'dark' ? '#000' : '#FFFFFF'} />}
+          <Text style={styles.buttonText}>{loading ? 'Entrando...' : 'Entrar'}</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.links}>
           <Link href="/(auth)/forgot" asChild>
             <TouchableOpacity disabled={loading}>
-              <Text style={[styles.linkText, loading && styles.linkDisabled]}>
-                Esqueceu a senha?
-              </Text>
+              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Esqueceu a senha?</Text>
             </TouchableOpacity>
           </Link>
-          
+
           <Link href="/(auth)/register" asChild>
             <TouchableOpacity disabled={loading}>
-              <Text style={[styles.linkText, loading && styles.linkDisabled]}>
-                Criar conta
-              </Text>
+              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Criar conta</Text>
             </TouchableOpacity>
           </Link>
         </View>

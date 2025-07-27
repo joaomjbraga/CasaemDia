@@ -1,19 +1,20 @@
+import Colors from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { FontAwesome } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
   useColorScheme,
+  View,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'expo-router';
-import Colors from '@/constants/Colors';
-import { FontAwesome } from '@expo/vector-icons';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -24,53 +25,45 @@ export default function ForgotPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert('Erro', 'Por favor, insira seu email');
+      Alert.alert('Erro', 'Por favor, insira seu e-mail.');
       return;
     }
 
-    if (!email.includes('@')) {
-      Alert.alert('Erro', 'Por favor, insira um email válido');
+    if (!email.includes('@') || !email.includes('.')) {
+      Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
       return;
     }
 
     setLoading(true);
-    
     try {
       const { error } = await resetPassword(email);
-      
       if (error) {
-        let errorMessage = 'Erro ao enviar email de recuperação';
-        
-        if (error.message) {
-          if (error.message.includes('User not found')) {
-            errorMessage = 'Email não encontrado em nossa base de dados';
-          } else if (error.message.includes('Invalid email')) {
-            errorMessage = 'Email inválido';
-          } else if (error.message.includes('Too many requests')) {
-            errorMessage = 'Muitas tentativas. Aguarde alguns minutos';
-          } else {
-            errorMessage = error.message;
-          }
+        let errorMessage = 'Erro ao enviar e-mail de recuperação.';
+        if (error.message.includes('User not found')) {
+          errorMessage = 'E-mail não encontrado em nossa base de dados.';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'E-mail inválido.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+        } else {
+          errorMessage = error.message;
         }
-        
         Alert.alert('Erro', errorMessage);
       } else {
         Alert.alert(
-          'Email enviado!',
-          'Um link de recuperação foi enviado para seu email. Verifique sua caixa de entrada e spam.',
+          'E-mail enviado!',
+          'Um link de recuperação foi enviado para seu e-mail. Verifique sua caixa de entrada e spam.',
           [
-            { 
-              text: 'OK', 
-              onPress: () => {
-                setEmail('');
-              }
-            }
+            {
+              text: 'OK',
+              onPress: () => setEmail(''),
+            },
           ]
         );
       }
     } catch (error) {
       console.error('Erro inesperado ao resetar senha:', error);
-      Alert.alert('Erro', 'Erro inesperado. Tente novamente');
+      Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -127,6 +120,8 @@ export default function ForgotPasswordScreen() {
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
       elevation: 5,
+      flexDirection: 'row',
+      gap: 8,
     },
     buttonDisabled: {
       opacity: 0.6,
@@ -150,23 +145,19 @@ export default function ForgotPasswordScreen() {
   });
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.form}>
-
-        <View style={{alignItems: 'center', justifyContent: 'center', gap: 10}}>
-          <FontAwesome name='bug' color={colors.tint} size={100} /> 
+        <View style={{ alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <FontAwesome name="bug" color={colors.tint} size={100} />
           <Text style={styles.title}>Recuperar Senha</Text>
         </View>
         <Text style={styles.subtitle}>
-          Digite seu email para receber um link de recuperação de senha
+          Digite seu e-mail para receber um link de recuperação de senha
         </Text>
-        
+
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder="E-mail"
           placeholderTextColor={colors.tabIconDefault}
           value={email}
           onChangeText={(text) => setEmail(text.trim())}
@@ -175,24 +166,21 @@ export default function ForgotPasswordScreen() {
           autoComplete="email"
           editable={!loading}
         />
-        
+
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleResetPassword}
           disabled={loading}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Enviando...' : 'Enviar Link'}
-          </Text>
+          {loading && <ActivityIndicator size="small" color={colorScheme === 'dark' ? '#000' : '#FFFFFF'} />}
+          <Text style={styles.buttonText}>{loading ? 'Enviando...' : 'Enviar Link'}</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.links}>
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity disabled={loading}>
-              <Text style={[styles.linkText, loading && styles.linkDisabled]}>
-                Voltar ao login
-              </Text>
+              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Voltar ao login</Text>
             </TouchableOpacity>
           </Link>
         </View>

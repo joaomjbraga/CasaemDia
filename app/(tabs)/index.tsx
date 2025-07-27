@@ -16,6 +16,14 @@ interface Task {
   done: boolean;
   assignee: string;
   points: number;
+  due_date: string | null;
+}
+
+interface CoupleStat {
+  name: string;
+  points: number;
+  avatar: 'person' | 'person-outline' | 'trophy';
+  tasksCompleted: number;
 }
 
 export default function Dashboard() {
@@ -30,14 +38,38 @@ export default function Dashboard() {
   const totalTasks = tasks.length;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  const coupleStats = {
-    maria: { name: 'Anne', points: 145, avatar: '👩🏻', tasksCompleted: 12 },
-    joao: { name: 'João', points: 132, avatar: '👨🏻', tasksCompleted: 10 }
+  const updateCoupleStats = (): { [key: string]: CoupleStat } => {
+    const assignees = [...new Set(tasks.map(task => task.assignee))];
+    const stats: { [key: string]: CoupleStat } = {};
+    assignees.forEach((assignee, index) => {
+      const points = tasks
+        .filter(t => t.assignee === assignee && t.done)
+        .reduce((sum, t) => sum + t.points, 0);
+      const tasksCompleted = tasks.filter(t => t.assignee === assignee && t.done).length;
+      stats[assignee] = {
+        name: assignee,
+        points,
+        avatar: index % 2 === 0 ? 'person' : 'person-outline', // Ícones válidos
+        tasksCompleted,
+      };
+    });
+    return stats;
   };
+
+  const coupleStats = updateCoupleStats();
 
   useEffect(() => {
     if (user) {
       fetchTasks();
+      const subscription = supabase
+        .channel('tasks')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${user.id}` }, () => {
+          fetchTasks();
+        })
+        .subscribe();
+      return () => {
+        subscription.unsubscribe();
+      };
     } else {
       setTasks([]);
       setTasksLoading(false);
@@ -55,7 +87,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select('*')
+        .select('id, title, done, assignee, points, due_date')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -101,7 +133,7 @@ export default function Dashboard() {
     }
   };
 
-  const addTask = async (title: string, assignee: string, points: number) => {
+  const addTask = async (title: string, assignee: string, points: number, due_date: string | null) => {
     if (!user) {
       Alert.alert('Erro', 'Usuário não autenticado.');
       return;
@@ -110,7 +142,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{ title, assignee, points, user_id: user.id, done: false }])
+        .insert([{ title, assignee, points, user_id: user.id, done: false, due_date }])
         .select()
         .single();
 
@@ -156,9 +188,7 @@ export default function Dashboard() {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.tint} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>
-            Carregando...
-          </Text>
+          <Text style={[styles.loadingText, { color: theme.text }]}>Carregando...</Text>
         </View>
       </SafeAreaView>
     );
@@ -183,7 +213,11 @@ export default function Dashboard() {
           isDark={isDark}
         />
         <BalanceCard isDark={isDark} theme={theme} />
-        <RankingCard coupleStats={coupleStats} theme={theme} isDark={isDark} />
+        <RankingCard
+          coupleStats={coupleStats}
+          theme={theme}
+          isDark={isDark}
+        />
         <TasksCard
           tasks={tasks}
           progressPercentage={progressPercentage}

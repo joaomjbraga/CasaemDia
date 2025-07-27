@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
   user: User | null;
@@ -35,10 +35,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = async () => {
       try {
         setLoading(true);
-        
-        // Verificar sessão inicial
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error('Erro ao obter sessão:', error);
         }
@@ -64,18 +62,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Escutar mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {        
+      async (event, session) => {
         if (isMounted) {
           setSession(session);
           setUser(session?.user ?? null);
-          
           if (!initialized) {
             setInitialized(true);
           }
-          
-          // Garantir que o loading seja false após mudanças de estado
           if (loading) {
             setLoading(false);
           }
@@ -118,11 +112,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
+        options: {
+          emailRedirectTo: undefined, // Não necessário, pois confirmação de e-mail está desativada
+        },
       });
 
       if (error) {
         console.error('Erro no registro:', error);
         return { error };
+      }
+
+      // Login automático após registro, já que confirmação de e-mail está desativada
+      if (data.user) {
+        await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
       }
 
       console.log('Registro realizado:', data.user?.email);
@@ -139,14 +144,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       console.log('Fazendo logout...');
-      
       const { error } = await supabase.auth.signOut();
-      
       if (error) {
         console.error('Erro no logout:', error);
         throw error;
       }
-
       console.log('Logout realizado com sucesso');
     } catch (error) {
       console.error('Erro inesperado no logout:', error);
@@ -160,10 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
-        {
-          redirectTo: `${window.location.origin}/reset-password`,
-        }
+        email.trim().toLowerCase()
       );
 
       if (error) {
