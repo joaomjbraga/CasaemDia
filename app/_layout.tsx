@@ -6,13 +6,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export {
-  ErrorBoundary,
+  ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -70,15 +70,15 @@ function RootLayoutNav() {
     return (
       <SafeAreaProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <View style={{ 
-            flex: 1, 
-            justifyContent: 'center', 
+          <View style={{
+            flex: 1,
+            justifyContent: 'center',
             alignItems: 'center',
             backgroundColor: colorScheme === 'dark' ? '#000' : '#fff'
           }}>
             <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#fff' : '#007AFF'} />
-            <Text style={{ 
-              marginTop: 16, 
+            <Text style={{
+              marginTop: 16,
               fontSize: 16,
               color: colorScheme === 'dark' ? '#fff' : '#333'
             }}>
@@ -93,37 +93,37 @@ function RootLayoutNav() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ 
+        <Stack screenOptions={{
           headerShown: false,
           animation: 'none'
         }}>
-          <Stack.Screen 
-            name="(tabs)" 
-            options={{ 
+          <Stack.Screen
+            name="(tabs)"
+            options={{
               headerShown: false,
-              gestureEnabled: false 
-            }} 
+              gestureEnabled: false
+            }}
           />
-          <Stack.Screen 
-            name="(auth)/login" 
-            options={{ 
+          <Stack.Screen
+            name="(auth)/login"
+            options={{
               headerShown: false,
-              gestureEnabled: false 
-            }} 
+              gestureEnabled: false
+            }}
           />
-          <Stack.Screen 
-            name="(auth)/register" 
-            options={{ 
+          <Stack.Screen
+            name="(auth)/register"
+            options={{
               headerShown: false,
-              gestureEnabled: false 
-            }} 
+              gestureEnabled: false
+            }}
           />
-          <Stack.Screen 
-            name="(auth)/forgot" 
-            options={{ 
+          <Stack.Screen
+            name="(auth)/forgot"
+            options={{
               headerShown: false,
-              gestureEnabled: false 
-            }} 
+              gestureEnabled: false
+            }}
           />
         </Stack>
       </ThemeProvider>

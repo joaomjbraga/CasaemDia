@@ -3,9 +3,9 @@ import { Link, Tabs } from 'expo-router';
 import React from 'react';
 import { Pressable } from 'react-native';
 
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { useClientOnlyValue } from '@/hooks/useClientOnlyValue';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
