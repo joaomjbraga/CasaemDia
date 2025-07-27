@@ -5,30 +5,86 @@ import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 const { width } = Dimensions.get('window');
 
 interface QuickActionsProps {
-  theme: any;
+  theme: {
+    text: string;
+    background: string;
+    tint: string;
+    tabIconDefault: string;
+    tabIconSelected: string;
+  };
   isDark: boolean;
 }
 
 export default function QuickActions({ theme, isDark }: QuickActionsProps) {
   return (
-    <View style={[styles.quickActions, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]}>
-      <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 16 }]}>Ações Rápidas</Text>
+    <View style={[styles.quickActions, { backgroundColor: theme.background }]}>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        Ações Rápidas
+      </Text>
+
       <View style={styles.quickActionsGrid}>
-        <TouchableOpacity style={[styles.quickActionItem, { backgroundColor: isDark ? '#F4CE1420' : '#3E8E7E20' }]}>
-          <MaterialCommunityIcons name="cart-plus" size={24} color={theme.tint} />
-          <Text style={[styles.quickActionText, { color: theme.text }]}>Lista de Compras</Text>
+        <TouchableOpacity
+          style={[styles.quickActionItem, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="cart-plus"
+              size={28}
+              color={theme.tint}
+            />
+          </View>
+          <Text style={[styles.quickActionText, { color: theme.text }]}>
+            Lista de Compras
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.quickActionItem, { backgroundColor: '#3b82f620' }]}>
-          <MaterialCommunityIcons name="target" size={24} color="#3b82f6" />
-          <Text style={[styles.quickActionText, { color: theme.text }]}>Metas</Text>
+
+        <TouchableOpacity
+          style={[styles.quickActionItem, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="target"
+              size={28}
+              color={theme.tint}
+            />
+          </View>
+          <Text style={[styles.quickActionText, { color: theme.text }]}>
+            Metas
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.quickActionItem, { backgroundColor: '#FF8C4220' }]}>
-          <MaterialCommunityIcons name="chart-line" size={24} color="#FF8C42" />
-          <Text style={[styles.quickActionText, { color: theme.text }]}>Relatórios</Text>
+
+        <TouchableOpacity
+          style={[styles.quickActionItem, { backgroundColor: theme.tabIconSelected + '20' }]}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="chart-line"
+              size={28}
+              color={theme.tabIconSelected}
+            />
+          </View>
+          <Text style={[styles.quickActionText, { color: theme.text }]}>
+            Relatórios
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.quickActionItem, { backgroundColor: '#8E44AD20' }]}>
-          <MaterialCommunityIcons name="cog" size={24} color="#8E44AD" />
-          <Text style={[styles.quickActionText, { color: theme.text }]}>Configurações</Text>
+
+        <TouchableOpacity
+          style={[styles.quickActionItem, { backgroundColor: theme.tint + '20' }]}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="cog"
+              size={28}
+              color={theme.tint}
+            />
+          </View>
+          <Text style={[styles.quickActionText, { color: theme.text }]}>
+            Configurações
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -38,33 +94,47 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
 const styles = StyleSheet.create({
   quickActions: {
     marginHorizontal: 20,
+    marginVertical: 16,
     padding: 20,
     borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 12,
   },
   quickActionItem: {
-    width: (width - 80) / 2,
-    padding: 16,
-    borderRadius: 12,
+    width: (width - 72) / 2, // Calculado considerando: margin (40) + padding (40) - gap (12) / 2
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+    maxHeight: 120,
+  },
+  iconContainer: {
+    marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickActionText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    marginTop: 8,
     textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    lineHeight: 16,
+    flexShrink: 1,
   },
 });

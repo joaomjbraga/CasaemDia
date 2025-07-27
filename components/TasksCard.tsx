@@ -17,9 +17,16 @@ interface TasksCardProps {
   progressPercentage: number;
   completedTasks: number;
   totalTasks: number;
-  theme: any;
+  theme: {
+    text: string;
+    background: string;
+    tint: string;
+    tabIconDefault: string;
+    tabIconSelected: string;
+    bgConainer: string
+  };
   isDark: boolean;
-  toggleTask: (id: number) => void;
+  toggleTask: (id: number) => Promise<void>;
   addTask: (title: string, assignee: string, points: number, due_date: string | null) => void;
   deleteTask: (id: number) => void;
 }
@@ -91,11 +98,11 @@ export default function TasksCard({
   };
 
   return (
-    <View style={[styles.tasksCard, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]}>
+    <View style={[styles.tasksCard, { backgroundColor: isDark ? '#151515' : '#fffffff8' }]}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionHeaderLeft}>
-          <View style={[styles.sectionIcon, { backgroundColor: '#8E44AD20' }]}>
-            <FontAwesome5 name="tasks" color="#8E44AD" size={16} />
+          <View style={[styles.sectionIcon, { backgroundColor: isDark ? 'rgba(164, 164, 164, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}>
+            <FontAwesome5 name="tasks" color={theme.tint} size={16} />
           </View>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Tarefas de Hoje</Text>
         </View>
@@ -105,8 +112,8 @@ export default function TasksCard({
       </View>
 
       <View style={styles.taskProgress}>
-        <View style={[styles.taskProgressBar, { backgroundColor: isDark ? '#3A3A3A' : '#F0F0F0' }]}>
-          <View style={[styles.taskProgressFill, { width: `${progressPercentage}%`, backgroundColor: '#8E44AD' }]} />
+        <View style={[styles.taskProgressBar, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}>
+          <View style={[styles.taskProgressFill, { width: `${progressPercentage}%`, backgroundColor: theme.tint }]} />
         </View>
         <Text style={[styles.taskProgressText, { color: theme.tabIconDefault }]}>
           {completedTasks} de {totalTasks} concluídas ({Math.round(progressPercentage)}%)
@@ -115,13 +122,13 @@ export default function TasksCard({
 
       <View style={styles.tasksList}>
         {tasks.map((task) => (
-          <View key={task.id} style={[styles.taskItem, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA' }]}>
+          <View key={task.id} style={[styles.taskItem, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}>
             <TouchableOpacity
               onPress={() => toggleTask(task.id)}
               style={[styles.checkbox, { borderColor: task.done ? theme.tint : theme.tabIconDefault, backgroundColor: task.done ? theme.tint : 'transparent' }]}
             >
               {task.done && (
-                <MaterialCommunityIcons name="check" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={14} />
+                <MaterialCommunityIcons name="check" color={isDark ? '#FFFFFF' : '#1E1E1E'} size={14} />
               )}
             </TouchableOpacity>
             <View style={styles.taskContent}>
@@ -133,8 +140,8 @@ export default function TasksCard({
               <View style={styles.taskMeta}>
                 <Text style={[styles.taskAssignee, { color: theme.tabIconDefault }]}>{task.assignee}</Text>
                 <View style={styles.taskPoints}>
-                  <MaterialCommunityIcons name="star" size={12} color="#FF8C42" />
-                  <Text style={[styles.taskPointsText, { color: '#FF8C42' }]}>{task.points} pts</Text>
+                  <MaterialCommunityIcons name="star" size={12} color={theme.tabIconSelected} />
+                  <Text style={[styles.taskPointsText, { color: theme.tabIconSelected }]}>{task.points} pts</Text>
                 </View>
               </View>
               <Text style={[styles.taskDueDate, { color: theme.tabIconDefault }]}>Vence em: {formatDate(task.due_date)}</Text>
@@ -148,21 +155,21 @@ export default function TasksCard({
 
       <View style={styles.newTaskForm}>
         <TextInput
-          style={[styles.input, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA', color: theme.text }]}
+          style={[styles.input, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
           placeholder="Título da tarefa"
           placeholderTextColor={theme.tabIconDefault}
           value={newTaskTitle}
           onChangeText={setNewTaskTitle}
         />
         <TextInput
-          style={[styles.input, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA', color: theme.text }]}
+          style={[styles.input, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
           placeholder="Responsável"
           placeholderTextColor={theme.tabIconDefault}
           value={newTaskAssignee}
           onChangeText={setNewTaskAssignee}
         />
         <TextInput
-          style={[styles.input, { backgroundColor: isDark ? '#3A3A3A' : '#F8F9FA', color: theme.text }]}
+          style={[styles.input, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
           placeholder="Pontos"
           placeholderTextColor={theme.tabIconDefault}
           value={newTaskPoints}
@@ -189,8 +196,8 @@ export default function TasksCard({
           />
         )}
         <TouchableOpacity style={[styles.addTaskButton, { backgroundColor: theme.tint }]} onPress={handleAddTask}>
-          <MaterialCommunityIcons name="plus" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={18} />
-          <Text style={[styles.addTaskText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>Adicionar Tarefa</Text>
+          <MaterialCommunityIcons name="plus" color={isDark ? '#FFFFFF' : '#1E1E1E'} size={18} />
+          <Text style={[styles.addTaskText, { color: isDark ? '#FFFFFF' : '#1E1E1E' }]}>Adicionar Tarefa</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -323,6 +330,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
+    marginTop: 14,
   },
   addTaskText: {
     fontWeight: '600',

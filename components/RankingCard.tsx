@@ -5,13 +5,20 @@ import { StyleSheet, Text, View } from 'react-native';
 interface CoupleStat {
   name: string;
   points: number;
-  avatar: 'person' | 'person-outline' | 'trophy'; // União explícita de ícones usados
+  avatar: 'person' | 'person-outline' | 'trophy';
   tasksCompleted: number;
 }
 
 interface RankingCardProps {
   coupleStats: { [key: string]: CoupleStat };
-  theme: any;
+  theme: {
+    text: string;
+    background: string;
+    tint: string;
+    tabIconDefault: string;
+    tabIconSelected: string;
+    bgConainer: string
+  };
   isDark: boolean;
 }
 
@@ -19,11 +26,11 @@ export default function RankingCard({ coupleStats, theme, isDark }: RankingCardP
   const sortedStats = Object.values(coupleStats).sort((a, b) => b.points - a.points);
 
   return (
-    <View style={[styles.rankingCard, { backgroundColor: isDark ? '#2A2A2A' : '#FFFFFF' }]}>
+    <View style={[styles.rankingCard, { backgroundColor: isDark ? '#151515' : '#fffffff8'  }]}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionHeaderLeft}>
-          <View style={[styles.sectionIcon, { backgroundColor: '#FF8C4220' }]}>
-            <Ionicons name="trophy" color="#FF8C42" size={16} />
+          <View style={[styles.sectionIcon, { backgroundColor: isDark ? 'hsl(0, 0%, 20.392156862745097%)' : 'rgba(0, 0, 0, 0.1)' }]}>
+            <Ionicons name="trophy" color={theme.tint} size={16} />
           </View>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Ranking</Text>
         </View>
@@ -35,7 +42,7 @@ export default function RankingCard({ coupleStats, theme, isDark }: RankingCardP
             <Ionicons
               name={stat.avatar}
               size={24}
-              color={index % 2 === 0 ? theme.tint : '#FF8C42'} // Alterna cores para distinção
+              color={index % 2 === 0 ? theme.tint : theme.tabIconSelected}
             />
             <View style={styles.rankingDetails}>
               <Text style={[styles.rankingName, { color: theme.text }]}>{stat.name}</Text>

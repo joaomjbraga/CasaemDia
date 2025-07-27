@@ -11,7 +11,7 @@ interface BalanceCardProps {
 export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
   return (
     <LinearGradient
-      colors={isDark ? ['#F4CE14', '#DAB700'] : ['#3E8E7E', '#2D6B5F']}
+      colors={isDark ? ['#C9F31D', '#9AB821'] : ['#3E8E7E', '#2D6B5F']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.balanceCard}
@@ -43,7 +43,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
           <Text style={[styles.expenseAmount, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>R$ 1.462,50</Text>
         </View>
         <View style={styles.lastExpenseRow}>
-          <View style={[styles.expenseIndicator, { backgroundColor: isDark ? '#FF8C42' : '#22c55e' }]} />
+          <View style={[styles.expenseIndicator, { backgroundColor: isDark ? '#26352a' : '#22c55e' }]} />
           <Text style={[styles.lastExpenseText, { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
             João pagou R$ 200 - Conta de Luz ⚡
           </Text>
@@ -59,7 +59,8 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 20,
     marginBottom: 24,
-    shadowColor: '#000',
+    marginTop: 24,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,

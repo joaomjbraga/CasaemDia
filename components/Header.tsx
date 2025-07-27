@@ -1,17 +1,38 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface HeaderProps {
-  user: any;
+  user: {
+    id?: string;
+    user_metadata?: {
+      full_name?: string;
+    };
+    email?: string;
+  } | null;
   isDark: boolean;
+  onOpenSettings?: () => void;
 }
 
-export default function Header({ user, isDark }: HeaderProps) {
+export default function Header({ user, isDark, onOpenSettings }: HeaderProps) {
   const { signOut } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  const themeColors = isDark
+    ? { gradient: ['#C9F31D', '#9AB821'] as const, text: '#010101', accent: 'rgba(255, 255, 255, 0.1)' }
+    : { gradient: ['#3E8E7E', '#2D6B5F'] as const, text: '#FFFFFF', accent: 'rgba(255, 255, 255, 0.1)' };
+
+  // Atualizar horário a cada minuto
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Atualiza a cada minuto
+
+    return () => clearInterval(timer);
+  }, []);
 
   const handleLogout = () => {
     Alert.alert(
@@ -38,91 +59,183 @@ export default function Header({ user, isDark }: HeaderProps) {
     );
   };
 
+  const getTimeOfDay = () => {
+    const hour = currentTime.getHours();
+
+    if (hour >= 5 && hour < 12) {
+      return {
+        greeting: 'Bom dia',
+        icon: 'weather-sunny' as const,
+        period: 'manhã'
+      };
+    } else if (hour >= 12 && hour < 18) {
+      return {
+        greeting: 'Boa tarde',
+        icon: 'weather-partly-cloudy' as const,
+        period: 'tarde'
+      };
+    } else {
+      return {
+        greeting: 'Boa noite',
+        icon: 'weather-night' as const,
+        period: 'noite'
+      };
+    }
+  };
+
+  const getFamilyEmail = (): string => {
+    return user?.email || 'familia@exemplo.com';
+  };
+
+  const timeInfo = getTimeOfDay();
+
   return (
     <LinearGradient
-      colors={isDark ? ['#F4CE14', '#DAB700'] : ['#3E8E7E', '#2D6B5F']}
+      colors={themeColors.gradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.headerGradient}
+      style={styles.container}
+      accessible
+      accessibilityLabel="Cabeçalho da aplicação Casa em Dia"
     >
-      <View style={styles.headerContent}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerIcon}>
-            <MaterialCommunityIcons name="home-heart" size={28} color="#FFFFFF" />
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>Casa em Dia</Text>
-            <Text style={styles.headerSubtitle}>Sua casa, organizada</Text>
-          </View>
+      <View style={styles.statusBarSpacer} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.brandSection}>
+          <MaterialCommunityIcons
+            name="home-variant-outline"
+            size={24}
+            color={themeColors.text}
+          />
+          <Text style={[styles.appName, { color: themeColors.text }]}>
+            Casa em Dia
+          </Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          disabled={isLoggingOut}
-        >
-          {isLoggingOut ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <MaterialCommunityIcons name="logout" size={20} color="#FFFFFF" />
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleLogout}
+            disabled={isLoggingOut}
+            accessibilityLabel="Sair da conta"
+          >
+            {isLoggingOut ? (
+              <ActivityIndicator size="small" color={themeColors.text} />
+            ) : (
+              <MaterialCommunityIcons
+                name="logout-variant"
+                size={20}
+                color={themeColors.text}
+              />
+            )}
+          </TouchableOpacity>
+
+          {onOpenSettings && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={onOpenSettings}
+              accessibilityLabel="Configurações"
+            >
+              <MaterialCommunityIcons
+                name="cog-outline"
+                size={20}
+                color={themeColors.text}
+              />
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
       </View>
 
-      {user && user.email && (
-        <View style={styles.userWelcome}>
-          <Text style={styles.welcomeText}>Olá, {user.email.split('@')[0]}! 👋</Text>
+      {/* Time-based Greeting */}
+      <View style={styles.greetingSection}>
+        <View style={styles.greetingContent}>
+          <MaterialCommunityIcons
+            name={timeInfo.icon}
+            size={20}
+            color={themeColors.text}
+            style={styles.timeIcon}
+          />
+          <View style={styles.textContent}>
+            <Text style={[styles.greeting, { color: themeColors.text }]}>
+              {timeInfo.greeting}
+            </Text>
+            <Text style={[styles.familyEmail, { color: themeColors.text }]}>
+              {getFamilyEmail()}
+            </Text>
+          </View>
         </View>
-      )}
+      </View>
+
+      {/* Divider */}
+      <View style={[styles.divider, { backgroundColor: themeColors.accent }]} />
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  headerGradient: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+  container: {
+    paddingHorizontal: 24,
+    paddingBottom: 20,
   },
-  headerContent: {
+  statusBarSpacer: {
+    height: 44,
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: 16,
+    marginBottom: 20,
+  },
+  brandSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  appName: {
+    fontSize: 20,
+    fontWeight: '300',
+    letterSpacing: 0.5,
+    marginLeft: 12,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  actionButton: {
+    padding: 8,
+    opacity: 0.9,
+  },
+  greetingSection: {
     marginBottom: 16,
   },
-  headerLeft: {
+  greetingContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 12,
-    borderRadius: 16,
+  timeIcon: {
     marginRight: 12,
+    opacity: 0.9,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  textContent: {
+    flex: 1,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
-  },
-  logoutButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 12,
-    borderRadius: 12,
-  },
-  userWelcome: {
-    marginTop: 8,
-  },
-  welcomeText: {
-    fontSize: 16,
-    color: '#FFFFFF',
+  greeting: {
+    fontSize: 22,
     fontWeight: '500',
+    letterSpacing: -0.2,
+    marginBottom: 2,
+  },
+  familyEmail: {
+    fontSize: 14,
+    fontWeight: '400',
+    opacity: 0.9,
+  },
+  divider: {
+    height: 1,
+    marginHorizontal: -24,
+    opacity: 0.2,
   },
 });

@@ -7,7 +7,6 @@ import BalanceCard from '../../components/BalanceCard';
 import Header from '../../components/Header';
 import QuickActions from '../../components/QuickActions';
 import RankingCard from '../../components/RankingCard';
-import StatsCard from '../../components/StatsCard';
 import TasksCard from '../../components/TasksCard';
 
 interface Task {
@@ -198,7 +197,7 @@ export default function Dashboard() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? '#F4CE14' : '#3E8E7E'}
+        backgroundColor={isDark ? '#C9F31D' : '#3E8E7E'}
       />
       <ScrollView
         style={styles.scrollView}
@@ -206,12 +205,7 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
       >
         <Header user={user} isDark={isDark} />
-        <StatsCard
-          completedTasks={completedTasks}
-          totalTasks={totalTasks}
-          theme={theme}
-          isDark={isDark}
-        />
+
         <BalanceCard isDark={isDark} theme={theme} />
         <RankingCard
           coupleStats={coupleStats}

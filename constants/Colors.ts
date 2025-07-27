@@ -1,5 +1,5 @@
 const tintColorLight = '#3E8E7E'; // verde azulado - equilíbrio, dinheiro, confiança
-const tintColorDark = '#F4CE14';  // amarelo dourado - energia, clareza no escuro
+const tintColorDark = '#C9F31D';  // amarelo dourado - energia, clareza no escuro
 
 export default {
   light: {
@@ -8,12 +8,14 @@ export default {
     tint: tintColorLight,
     tabIconDefault: '#B0B0B0',
     tabIconSelected: tintColorLight,
+    bgConainer: '252525'
   },
   dark: {
     text: '#FFFFFF',
-    background: '#1E1E1E',
+    background: '#000',
     tint: tintColorDark,
-    tabIconDefault: '#555',
+    tabIconDefault: '#B0B0B0',
     tabIconSelected: tintColorDark,
+    bgConainer: '252525',
   },
 };
