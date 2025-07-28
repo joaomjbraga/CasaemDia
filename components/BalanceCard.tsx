@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, DimensionValue, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, DimensionValue, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { handleSupabaseError, supabase } from '../lib/supabase';
 
 interface BalanceCardProps {
@@ -39,7 +39,41 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
 
-  // Função para inicializar saldo do usuário se não existir
+  // Função para formatar números brasileiros
+  const formatCurrency = useCallback((value: number | string | null | undefined): string => {
+    const numericValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
+    if (numericValue == null || isNaN(numericValue)) {
+      console.log('formatCurrency: valor inválido', { value, numericValue });
+      return 'R$ 0,00';
+    }
+    const formatted = Math.abs(numericValue).toFixed(2).replace('.', ',');
+    return `${numericValue < 0 ? '-' : ''}R$ ${formatted}`;
+  }, []);
+
+  // Função para parsear valor monetário brasileiro
+  const parseCurrencyValue = useCallback((value: string): number => {
+    const cleanValue = value.replace(/[^\d,-]/g, '').replace(',', '.');
+    const parsed = parseFloat(cleanValue);
+    console.log('parseCurrencyValue:', { input: value, cleanValue, parsed });
+    return isNaN(parsed) ? 0 : parsed;
+  }, []);
+
+  // Obtém o ID do usuário autenticado
+  const getUserId = useCallback(async (): Promise<string | null> => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) throw new Error('Usuário não autenticado');
+      console.log('Usuário autenticado:', user.id);
+      return user.id;
+    } catch (error) {
+      const errorMessage = handleSupabaseError(error, 'ao obter usuário');
+      console.error('Erro ao obter usuário:', error);
+      Alert.alert('Erro', errorMessage);
+      return null;
+    }
+  }, []);
+
+  // Inicializa saldo do usuário se não existir
   const initializeUserBalance = useCallback(async (userId: string) => {
     try {
       const { data: existingBalance, error: checkError } = await supabase
@@ -48,21 +82,15 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
         .eq('user_id', userId)
         .single();
 
-      // Se não existe, criar com valores padrão
       if (checkError && checkError.code === 'PGRST116') {
+        console.log('Inicializando saldo para usuário:', userId);
         const { error: insertError } = await supabase
           .from('balances')
-          .insert([{
-            user_id: userId,
-            total_balance: 0,
-            monthly_budget: 1000
-          }]);
+          .insert([{ user_id: userId, total_balance: 0, monthly_budget: 1000 }]);
 
-        if (insertError) {
-          console.error('Erro ao inicializar saldo:', insertError);
-        }
+        if (insertError) throw insertError;
       } else if (checkError) {
-        console.error('Erro ao verificar saldo existente:', checkError);
+        throw checkError;
       }
     } catch (error) {
       console.error('Erro na inicialização do saldo:', error);
@@ -72,72 +100,32 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
   // Função helper para atualizar ou criar saldo
   const updateOrCreateBalance = useCallback(async (userId: string, newBalance: number, budget: number) => {
     try {
-      // Primeiro tenta fazer um UPDATE
+      console.log('Atualizando saldo:', { userId, newBalance, budget });
       const { data, error: updateError } = await supabase
         .from('balances')
-        .update({
-          total_balance: newBalance,
-          monthly_budget: budget
-        })
-        .eq('user_id', userId)
+        .upsert(
+          { user_id: userId, total_balance: newBalance, monthly_budget: budget },
+          { onConflict: 'user_id' }
+        )
         .select();
 
-      // Se não atualizou nenhuma linha (registro não existe), faz INSERT
-      if (!updateError && (!data || data.length === 0)) {
-        const { error: insertError } = await supabase
-          .from('balances')
-          .insert([{
-            user_id: userId,
-            total_balance: newBalance,
-            monthly_budget: budget
-          }]);
-
-        if (insertError) throw insertError;
-      } else if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
+      console.log('Saldo atualizado:', data);
     } catch (error) {
+      console.error('Erro ao atualizar saldo:', error);
       throw error;
     }
   }, []);
 
-  // Função para formatar números brasileiros
-  const formatCurrency = useCallback((value: number): string => {
-    return value.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  }, []);
-
-  // Função para parsear valor monetário brasileiro
-  const parseCurrencyValue = useCallback((value: string): number => {
-    const cleanValue = value.replace(/[^\d,-]/g, '').replace(',', '.');
-    return parseFloat(cleanValue) || 0;
-  }, []);
-
-  // Obtém o ID do usuário autenticado
-  const getUserId = useCallback(async (): Promise<string | null> => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        throw new Error('Usuário não autenticado');
-      }
-      return user.id;
-    } catch (error) {
-      const errorMessage = handleSupabaseError(error, 'ao obter usuário');
-      console.error('Erro ao obter usuário:', error);
-      Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
-      return null;
-    }
-  }, []);
-
-  // Busca dados do Supabase (saldo, orçamento e despesas)
+  // Busca dados do Supabase
   const fetchData = useCallback(async (currentUserId: string) => {
-    if (!currentUserId || !isMountedRef.current) return;
+    if (!currentUserId || !isMountedRef.current) {
+      console.log('fetchData ignorado:', { currentUserId, isMounted: isMountedRef.current });
+      return;
+    }
 
     setIsLoading(true);
     try {
-      // Buscar saldo e orçamento
       const { data: balanceData, error: balanceError } = await supabase
         .from('balances')
         .select('total_balance, monthly_budget')
@@ -148,10 +136,9 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
         throw balanceError;
       }
 
-      const newBalance = balanceData?.total_balance ?? 0;
-      const newMonthlyBudget = balanceData?.monthly_budget ?? 0;
+      const newBalance = Number(balanceData?.total_balance) || 0;
+      const newMonthlyBudget = Number(balanceData?.monthly_budget) || 0;
 
-      // Buscar despesas do mês atual
       const currentDate = new Date();
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -166,17 +153,16 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
 
       if (expensesError) throw expensesError;
 
-      const totalExpenses = expensesData?.reduce((sum: number, expense: Expense) => sum + expense.amount, 0) ?? 0;
-      const mostRecentExpense = expensesData && expensesData.length > 0 ? expensesData[0] : null;
+      const totalExpenses = expensesData?.reduce((sum: number, expense: Expense) => sum + Number(expense.amount), 0) || 0;
+      const mostRecentExpense = expensesData && expensesData.length > 0 ? { ...expensesData[0], amount: Number(expensesData[0].amount) } : null;
 
-      // Atualizar estado apenas se o componente ainda estiver montado
       if (isMountedRef.current) {
+        console.log('Dados atualizados:', { newBalance, newMonthlyBudget, totalExpenses, mostRecentExpense });
         setBalance(newBalance);
         setMonthlyBudget(newMonthlyBudget);
         setExpenses(totalExpenses);
         setLastExpense(mostRecentExpense);
 
-        // Alerta se o orçamento mensal for zero e houver despesas
         if (newMonthlyBudget === 0 && totalExpenses > 0) {
           Alert.alert('Aviso', 'Seu orçamento mensal está definido como zero. Considere configurar um valor.');
         }
@@ -185,7 +171,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
       const errorMessage = handleSupabaseError(error, 'ao buscar dados');
       console.error('Erro ao buscar dados:', error);
       if (isMountedRef.current) {
-        Alert.alert('Erro', 'Não foi possível carregar os dados. Tente novamente.');
+        Alert.alert('Erro', errorMessage);
       }
     } finally {
       if (isMountedRef.current) {
@@ -224,23 +210,18 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
         user_id: userId,
       };
 
-      // Inserir despesa
-      const { error: expenseError } = await supabase
-        .from('expenses')
-        .insert([newExpense]);
-
+      console.log('Inserindo despesa:', newExpense);
+      const { error: expenseError } = await supabase.from('expenses').insert([newExpense]);
       if (expenseError) throw expenseError;
 
-      // Atualizar saldo usando a função helper
       const newBalance = balance - amount;
       await updateOrCreateBalance(userId, newBalance, monthlyBudget || 1000);
+
+      await fetchData(userId);
 
       Alert.alert('Sucesso', 'Despesa adicionada com sucesso!');
       setModalVisible(false);
       setNewExpenseData({ amount: '', description: '', payer: '' });
-
-      // Recarregar dados
-      await fetchData(userId);
     } catch (error) {
       const errorMessage = handleSupabaseError(error, 'ao adicionar despesa');
       console.error('Erro ao adicionar despesa:', error);
@@ -261,96 +242,71 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     setModalVisible(true);
   }, []);
 
-  // Configura dados e assinaturas em tempo real na montagem
+  // Configura dados e assinaturas em tempo real
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-
     const initialize = async () => {
       const id = await getUserId();
       if (id && isMountedRef.current) {
         setUserId(id);
-
-        // Inicializar saldo do usuário se necessário
         await initializeUserBalance(id);
-
         await fetchData(id);
 
-        // Configurar assinatura em tempo real
         const subscription = supabase
-          .channel(`expenses_changes_${id}`)
+          .channel(`changes_${id}`)
           .on(
             'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'expenses',
-              filter: `user_id=eq.${id}`
-            },
-            () => {
-              if (isMountedRef.current) {
-                fetchData(id);
-              }
+            { event: '*', schema: 'public', table: 'expenses', filter: `user_id=eq.${id}` },
+            (payload) => {
+              console.log('Evento expenses_changes:', payload);
+              if (isMountedRef.current) fetchData(id);
             }
           )
           .on(
             'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'balances',
-              filter: `user_id=eq.${id}`
-            },
-            () => {
-              if (isMountedRef.current) {
-                fetchData(id);
-              }
+            { event: '*', schema: 'public', table: 'balances', filter: `user_id=eq.${id}` },
+            (payload) => {
+              console.log('Evento balances_changes:', payload);
+              if (isMountedRef.current) fetchData(id);
             }
           )
-          .subscribe();
+          .subscribe((status) => {
+            console.log('Status da assinatura:', status);
+            if (status === 'SUBSCRIBED' && isMountedRef.current) {
+              fetchData(id);
+            }
+          });
 
         subscriptionRef.current = subscription;
-
-        cleanup = () => {
-          if (subscriptionRef.current) {
-            supabase.removeChannel(subscriptionRef.current);
-            subscriptionRef.current = null;
-          }
-        };
       }
     };
 
     initialize();
 
-    return cleanup;
-  }, []); // Array de dependências vazio para executar apenas uma vez
-
-  // Cleanup quando o componente é desmontado
-  useEffect(() => {
     return () => {
       isMountedRef.current = false;
       if (subscriptionRef.current) {
+        console.log('Removendo assinatura do canal');
         supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
       }
     };
-  }, []);
+  }, [getUserId, initializeUserBalance, fetchData]);
 
-  // Calcula o percentual do orçamento (memoizado para performance)
+  // Calcula o percentual do orçamento
   const progressData = useMemo(() => {
     if (!monthlyBudget || monthlyBudget <= 0) {
       return {
         percentage: 0,
-        percentageText: '0%' as DimensionValue,
+        percentageText: '0%',
         isOverBudget: false
       };
     }
 
-    // Calcular com base nos gastos, não no saldo restante
     const spentPercentage = (expenses / monthlyBudget) * 100;
     const clampedPercentage = Math.min(Math.max(spentPercentage, 0), 100);
-
     return {
-      percentage: spentPercentage,
-      percentageText: `${clampedPercentage.toFixed(0)}%` as DimensionValue,
+      percentage: clampedPercentage / 100,
+      percentageText: `${clampedPercentage.toFixed(0)}%`,
       isOverBudget: spentPercentage > 100
     };
   }, [expenses, monthlyBudget]);
@@ -371,6 +327,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={isDark ? '#FFFFFF' : '#000000'} />
         <Text style={[styles.loadingText, { color: isDark ? '#FFFFFF' : '#000000' }]}>
           Carregando...
         </Text>
@@ -418,7 +375,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
         </View>
 
         <Text style={[styles.balanceAmount, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
-          R$ {formatCurrency(balance)}
+          {formatCurrency(monthlyBudget - expenses)}
         </Text>
 
         <View style={styles.balanceProgress}>
@@ -429,10 +386,8 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             <View style={[
               styles.progressFill,
               {
-                backgroundColor: progressData.isOverBudget
-                  ? '#ef4444'
-                  : (isDark ? '#1E1E1E' : '#FFFFFF'),
-                width: progressData.percentageText
+                backgroundColor: progressData.isOverBudget ? '#ef4444' : (isDark ? '#1E1E1E' : '#FFFFFF'),
+                width: `${progressData.percentage * 100}%` as DimensionValue
               }
             ]} />
           </View>
@@ -444,10 +399,11 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
                 : (isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)')
             }
           ]}>
-            {progressData.isOverBudget
-              ? `${progressData.percentage.toFixed(0)}% do orçamento (acima do limite!)`
-              : `${progressData.percentageText} do orçamento mensal usado`
-            }
+            {monthlyBudget === 0
+              ? 'Orçamento não definido'
+              : progressData.isOverBudget
+                ? `${progressData.percentageText} do orçamento (acima do limite!)`
+                : `${progressData.percentageText} do orçamento mensal usado`}
           </Text>
         </View>
 
@@ -465,12 +421,10 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             <Text style={[
               styles.expenseAmount,
               {
-                color: progressData.isOverBudget
-                  ? '#ef4444'
-                  : (isDark ? '#1E1E1E' : '#FFFFFF')
+                color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#1E1E1E' : '#FFFFFF')
               }
             ]}>
-              R$ {formatCurrency(expenses)}
+              {formatCurrency(expenses)}
             </Text>
           </View>
 
@@ -485,12 +439,10 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
               <Text style={[
                 styles.expenseAmount,
                 {
-                  color: progressData.isOverBudget
-                    ? '#ef4444'
-                    : (isDark ? '#1E1E1E' : '#FFFFFF')
+                  color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#1E1E1E' : '#FFFFFF')
                 }
               ]}>
-                R$ {formatCurrency(Math.max(monthlyBudget - expenses, 0))}
+                {formatCurrency(monthlyBudget - expenses)}
               </Text>
             </View>
           )}
@@ -505,7 +457,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
                 styles.lastExpenseText,
                 { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
               ]}>
-                {lastExpense.payer} pagou R$ {formatCurrency(lastExpense.amount)} - {lastExpense.description}
+                {lastExpense.payer} pagou {formatCurrency(lastExpense.amount)} - {lastExpense.description}
               </Text>
             </View>
           ) : (
@@ -519,7 +471,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
         </View>
       </LinearGradient>
 
-      {/* Modal para adicionar despesa */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
@@ -534,10 +485,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             <TextInput
               style={[
                 styles.input,
-                {
-                  borderColor: isDark ? '#FFFFFF' : '#000000',
-                  color: isDark ? '#FFFFFF' : '#000000'
-                }
+                { borderColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#FFFFFF' : '#000000' }
               ]}
               placeholder="Valor (ex.: 100,50)"
               placeholderTextColor={isDark ? '#AAAAAA' : '#666666'}
@@ -545,47 +493,71 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
               value={newExpenseData.amount}
               onChangeText={handleAmountChange}
               maxLength={10}
+              accessibilityLabel="Valor da despesa"
             />
             <TextInput
               style={[
                 styles.input,
-                {
-                  borderColor: isDark ? '#FFFFFF' : '#000000',
-                  color: isDark ? '#FFFFFF' : '#000000'
-                }
+                { borderColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#FFFFFF' : '#000000' }
               ]}
               placeholder="Descrição"
               placeholderTextColor={isDark ? '#AAAAAA' : '#666666'}
               value={newExpenseData.description}
               onChangeText={handleDescriptionChange}
               maxLength={100}
+              accessibilityLabel="Descrição da despesa"
             />
             <TextInput
               style={[
                 styles.input,
-                {
-                  borderColor: isDark ? '#FFFFFF' : '#000000',
-                  color: isDark ? '#FFFFFF' : '#000000'
-                }
+                { borderColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#FFFFFF' : '#000000' }
               ]}
               placeholder="Pagador"
               placeholderTextColor={isDark ? '#AAAAAA' : '#666666'}
               value={newExpenseData.payer}
               onChangeText={handlePayerChange}
               maxLength={50}
+              accessibilityLabel="Nome do pagador"
             />
             <View style={styles.modalButtons}>
-              <Button
-                title={isSubmitting ? 'Adicionando...' : 'Adicionar'}
+              <TouchableOpacity
+                style={[
+                  styles.addButton,
+                  {
+                    backgroundColor: isDark ? '#C9F31D' : '#2D6B5F',
+                    opacity: isSubmitting ? 0.6 : 1,
+                  }
+                ]}
                 onPress={addExpense}
                 disabled={isSubmitting}
-              />
-              <Button
-                title="Cancelar"
+                accessibilityLabel={isSubmitting ? 'Adicionando despesa' : 'Adicionar despesa'}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.buttonText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+                  {isSubmitting ? 'Adicionando...' : 'Adicionar'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.cancelButton,
+                  {
+                    backgroundColor: isDark ? '#000000b8' : '#fd5b5b',
+                    opacity: isSubmitting ? 0.6 : 1,
+                  }
+                ]}
                 onPress={closeModal}
                 disabled={isSubmitting}
-              />
+                accessibilityLabel="Cancelar adição de despesa"
+                accessibilityRole="button"
+              >
+                <Text style={[styles.buttonText, { color: isDark ? '#f8f8f8' : '#FFFFFF' }]}>
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
             </View>
+            {isSubmitting && (
+              <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : '#000000'} style={styles.submitIndicator} />
+            )}
           </View>
         </View>
       </Modal>
@@ -639,17 +611,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   progressBar: {
-    height: 6,
-    borderRadius: 3,
+    height: 8,
+    borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   progressText: {
     fontSize: 12,
+    textAlign: 'center',
   },
   balanceDetails: {
     borderTopWidth: 1,
@@ -671,6 +645,7 @@ const styles = StyleSheet.create({
   lastExpenseRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
   expenseIndicator: {
     width: 8,
@@ -685,15 +660,18 @@ const styles = StyleSheet.create({
   noExpenseText: {
     fontSize: 13,
     textAlign: 'center',
+    marginBottom: 12,
   },
   loadingContainer: {
     marginHorizontal: 20,
     padding: 24,
     marginTop: 24,
+    alignItems: 'center',
   },
   loadingText: {
     fontSize: 16,
     textAlign: 'center',
+    marginTop: 8,
   },
   modalContainer: {
     flex: 1,
@@ -730,5 +708,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginTop: 16,
     gap: 12,
+  },
+  addButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitIndicator: {
+    marginTop: 12,
   },
 });
