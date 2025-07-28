@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ConstructionModal from './ConstructionModal';
 
 const { width } = Dimensions.get('window');
 
@@ -16,6 +17,11 @@ interface QuickActionsProps {
 }
 
 export default function QuickActions({ theme, isDark }: QuickActionsProps) {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const openModal = () => setModalVisible(true);
+  const closeModal = () => setModalVisible(false);
+
   return (
     <View style={[styles.quickActions, { backgroundColor: theme.background }]}>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -24,7 +30,15 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
 
       <View style={styles.quickActionsGrid}>
         <TouchableOpacity
-          style={[styles.quickActionItem, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}
+          onPress={openModal}
+          style={[
+            styles.quickActionItem,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255, 255, 255, 0.1)'
+                : 'rgba(0, 0, 0, 0.1)',
+            },
+          ]}
           activeOpacity={0.7}
         >
           <View style={styles.iconContainer}>
@@ -40,7 +54,15 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickActionItem, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}
+          onPress={openModal}
+          style={[
+            styles.quickActionItem,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255, 255, 255, 0.1)'
+                : 'rgba(0, 0, 0, 0.1)',
+            },
+          ]}
           activeOpacity={0.7}
         >
           <View style={styles.iconContainer}>
@@ -56,7 +78,11 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickActionItem, { backgroundColor: theme.tabIconSelected + '20' }]}
+          onPress={openModal}
+          style={[
+            styles.quickActionItem,
+            { backgroundColor: theme.tabIconSelected + '20' },
+          ]}
           activeOpacity={0.7}
         >
           <View style={styles.iconContainer}>
@@ -72,7 +98,11 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickActionItem, { backgroundColor: theme.tint + '20' }]}
+          onPress={openModal}
+          style={[
+            styles.quickActionItem,
+            { backgroundColor: theme.tint + '20' },
+          ]}
           activeOpacity={0.7}
         >
           <View style={styles.iconContainer}>
@@ -87,6 +117,8 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <ConstructionModal visible={modalVisible} onClose={closeModal} />
     </View>
   );
 }
@@ -101,7 +133,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
-
   },
   sectionTitle: {
     fontSize: 20,

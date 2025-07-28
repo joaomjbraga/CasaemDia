@@ -128,7 +128,7 @@ export default function TasksCard({
               style={[styles.checkbox, { borderColor: task.done ? theme.tint : theme.tabIconDefault, backgroundColor: task.done ? theme.tint : 'transparent' }]}
             >
               {task.done && (
-                <MaterialCommunityIcons name="check" color={isDark ? '#FFFFFF' : '#1E1E1E'} size={14} />
+                <MaterialCommunityIcons name="check" color={isDark ? '#222222' : '#1E1E1E'} size={14} />
               )}
             </TouchableOpacity>
             <View style={styles.taskContent}>
@@ -196,8 +196,8 @@ export default function TasksCard({
           />
         )}
         <TouchableOpacity style={[styles.addTaskButton, { backgroundColor: theme.tint }]} onPress={handleAddTask}>
-          <MaterialCommunityIcons name="plus" color={isDark ? '#FFFFFF' : '#1E1E1E'} size={18} />
-          <Text style={[styles.addTaskText, { color: isDark ? '#FFFFFF' : '#1E1E1E' }]}>Adicionar Tarefa</Text>
+          <MaterialCommunityIcons name="plus" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={18} />
+          <Text style={[styles.addTaskText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>Adicionar Tarefa</Text>
         </TouchableOpacity>
       </View>
     </View>
