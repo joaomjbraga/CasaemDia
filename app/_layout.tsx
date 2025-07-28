@@ -72,13 +72,13 @@ function RootLayoutNav() {
               backgroundColor: colorScheme === 'dark' ? '#000' : '#fff',
             }}
           >
-            <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#F4CE14' : '#3E8E7E'} />
+            <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#C9F31D' : '#3E8E7E'} />
             <Text
               style={{
                 marginTop: 16,
                 fontSize: 16,
                 fontWeight: '500',
-                color: colorScheme === 'dark' ? '#F4CE14' : '#3E8E7E',
+                color: colorScheme === 'dark' ? '#C9F31D' : '#3E8E7E',
               }}
             >
               Carregando...

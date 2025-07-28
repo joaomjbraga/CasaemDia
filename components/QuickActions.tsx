@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   quickActionItem: {
-    width: (width - 72) / 2, // Calculado considerando: margin (40) + padding (40) - gap (12) / 2
+    width: (width - 72) / 2,
     paddingVertical: 20,
     paddingHorizontal: 16,
     borderRadius: 16,

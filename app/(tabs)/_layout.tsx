@@ -1,48 +1,61 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 import React from 'react';
-import { Pressable } from 'react-native';
+import { useColorScheme } from 'react-native';
 
-import Colors from '@/constants/Colors';
-import { useClientOnlyValue } from '@/hooks/useClientOnlyValue';
-import { useColorScheme } from '@/hooks/useColorScheme';
+interface Theme {
+  text: string;
+  background: string;
+  tint: string;
+  tabIconDefault: string;
+  tabIconSelected: string;
+}
 
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   color: string;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <MaterialCommunityIcons size={28} style={{ marginBottom: -3 }} {...props} />;
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() as 'light' | 'dark';
+  const isDark = colorScheme === 'dark';
+
+  const theme: Theme = {
+    text: isDark ? '#010101' : '#FFFFFF',
+    background: isDark ? '#1E1E1E' : '#F5F5F5',
+    tint: isDark ? '#C9F31D' : '#3E8E7E',
+    tabIconDefault: isDark ? '#A0A0A0' : '#6B6B6B',
+    tabIconSelected: isDark ? '#9AB821' : '#2D6B5F',
+  };
 
   return (
     <Tabs
-      initialRouteName='index'
+      initialRouteName="index"
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: useClientOnlyValue(false, false),
-      }}>
+        tabBarActiveTintColor: theme.tint,
+        tabBarInactiveTintColor: theme.tabIconDefault,
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: theme.background,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tela Principal',
-          headerRight: () => (
-            <Link href="/AboutScreen" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          title: 'Início',
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+          tabBarLabel: 'Início',
+        }}
+      />
+      <Tabs.Screen
+        name="shoppinglist"
+        options={{
+          title: 'Lista de Compras',
+          tabBarIcon: ({ color }) => <TabBarIcon name="cart-plus" color={color} />,
+          tabBarLabel: 'Lista de Compras',
         }}
       />
     </Tabs>
