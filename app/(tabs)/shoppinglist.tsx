@@ -199,34 +199,21 @@ export default function ShoppingList() {
   };
 
   const handleDeleteItem = async (id: number) => {
-    Alert.alert(
-      'Excluir Item',
-      'Tem certeza que deseja excluir este item?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const { error } = await supabase.from('shopping_list').delete().eq('id', id);
-              if (error) {
-                console.error('Erro ao excluir item:', error.message);
-                throw error;
-              }
-              console.log('Item excluído:', id);
-              await fetchItems();
-            } catch (err: any) {
-              console.error('Erro ao excluir item:', err);
-              setError(err.message || 'Falha ao excluir item. Tente novamente.');
-            } finally {
-              setLoading(false);
-            }
-          },
-          style: 'destructive',
-        },
-      ]
-    );
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('shopping_list').delete().eq('id', id);
+      if (error) {
+        console.error('Erro ao excluir item:', error.message);
+        throw error;
+      }
+      console.log('Item excluído:', id);
+      await fetchItems();
+    } catch (err: any) {
+      console.error('Erro ao excluir item:', err);
+      setError(err.message || 'Falha ao excluir item. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClearCompleted = async () => {

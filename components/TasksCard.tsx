@@ -67,18 +67,7 @@ export default function TasksCard({
   };
 
   const handleDeleteTask = (id: number) => {
-    Alert.alert(
-      'Excluir Tarefa',
-      'Tem certeza que deseja excluir esta tarefa?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          onPress: () => deleteTask(id),
-          style: 'destructive',
-        },
-      ]
-    );
+    deleteTask(id);
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
