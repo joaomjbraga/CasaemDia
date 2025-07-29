@@ -23,7 +23,7 @@ export default function ShoppingList() {
         gradient: ['#000', '#000'] as const,
         text: '#E8ECEF',
         accent: '#151515',
-        highlight: '#C9F31D',
+        highlight: '#77ac74',
         secondary: '#c0c5b0',
         btn: 'black'
       }

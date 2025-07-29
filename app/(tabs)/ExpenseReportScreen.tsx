@@ -184,7 +184,7 @@ export default function ExpenseReportScreen() {
 
   return (
     <LinearGradient
-      colors={isDark ? ['#C9F31D', '#9AB821'] : ['#3E8E7E', '#2D6B5F']}
+      colors={isDark ? ['#77ac74', '#588d59'] : ['#3E8E7E', '#2D6B5F']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}

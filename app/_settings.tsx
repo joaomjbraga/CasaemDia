@@ -28,8 +28,8 @@ export default function SettingsScreen () {
         text: '#E0E0E0',
         secondaryText: '#A0A0A0',
         border: '#3A4445',
-        buttonBackground: '#C9F31D',
-        buttonBorder: '#9AB821',
+        buttonBackground: '#77ac74',
+        buttonBorder: '#588d59',
         buttonText: '#010101',
       }
     : {

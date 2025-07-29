@@ -24,9 +24,9 @@ export default function TabLayout() {
   const theme: Theme = {
     text: isDark ? '#FFFFFF' : '#010101',
     background: isDark ? '#1E1E1E' : '#F5F5F5',
-    tint: isDark ? '#C9F31D' : '#3E8E7E',
+    tint: isDark ? '#77ac74' : '#3E8E7E',
     tabIconDefault: isDark ? '#A0A0A0' : '#6B6B6B',
-    tabIconSelected: isDark ? '#9AB821' : '#2D6B5F',
+    tabIconSelected: isDark ? '#77ac74' : '#2D6B5F',
   };
 
   return (

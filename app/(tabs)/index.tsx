@@ -187,7 +187,7 @@ export default function Dashboard() {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar
           barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={isDark ? '#C9F31D' : '#3E8E7E'}
+          backgroundColor={isDark ? '#77ac74' : '#3E8E7E'}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.tint} />
@@ -201,7 +201,7 @@ export default function Dashboard() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? '#C9F31D' : '#3E8E7E'}
+        backgroundColor={isDark ? '#77ac74' : '#3E8E7E'}
       />
       <ScrollView
         style={styles.scrollView}

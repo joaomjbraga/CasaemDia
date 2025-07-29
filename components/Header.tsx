@@ -24,7 +24,7 @@ export default function Header({ user, isDark, onToggleTheme }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const themeColors = isDark
-    ? { gradient: ['#C9F31D', '#9AB821'] as const, text: '#010101', accent: 'rgba(255, 255, 255, 0.1)' }
+    ? { gradient: ['#77ac74', '#588d59'] as const, text: '#010101', accent: 'rgba(255, 255, 255, 0.1)' }
     : { gradient: ['#3E8E7E', '#2D6B5F'] as const, text: '#FFFFFF', accent: 'rgba(255, 255, 255, 0.1)' };
 
   // Atualizar horário a cada minuto
