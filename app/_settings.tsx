@@ -24,6 +24,7 @@ export default function SettingsScreen() {
   const [newMemberName, setNewMemberName] = useState<string>('');
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const [budgetLoading, setBudgetLoading] = useState<boolean>(true);
+  const [deletingMember, setDeletingMember] = useState<number | null>(null);
   const {
     familyMembers,
     loading: memberLoading,
@@ -160,20 +161,102 @@ export default function SettingsScreen() {
     }
   };
 
+  // Função de deletar membro corrigida com base na estrutura real do banco
   const handleDeleteMember = async (memberId: number, memberName: string) => {
+    console.log('🗑️ Settings: Attempting to delete member:', {
+      memberId,
+      memberName,
+      userId: user?.id,
+      currentMembersCount: familyMembers.length
+    });
+
     Alert.alert(
       'Confirmar Remoção',
       `Tem certeza que deseja remover "${memberName}" da família? Esta ação não pode ser desfeita.`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cancelar', style: 'cancel', onPress: () => console.log('❌ Delete cancelled by user') },
         {
           text: 'Remover',
           style: 'destructive',
           onPress: async () => {
+            console.log('✅ User confirmed deletion, starting process...');
+
             try {
-              await deleteFamilyMember(memberId);
-            } catch (error) {
-              console.error('Settings: Error deleting member:', error);
+              setDeletingMember(memberId);
+              console.log('🔄 Settings: Starting delete process for member ID:', memberId);
+
+              if (!user) {
+                throw new Error('Usuário não autenticado');
+              }
+
+              // Verificar se o membro tem tarefas associadas (pela coluna 'assignee' que é text)
+              console.log(`🔍 Checking if member "${memberName}" has associated tasks...`);
+
+              const { data: tasksData, error: tasksCheckError } = await supabase
+                .from('tasks')
+                .select('id, title')
+                .eq('assignee', memberName) // Usa o nome como string, não ID
+                .eq('user_id', user.id);
+
+              if (tasksCheckError) {
+                console.error('❌ Error checking tasks:', tasksCheckError);
+                throw new Error('Erro ao verificar tarefas associadas: ' + tasksCheckError.message);
+              }
+
+              if (tasksData && tasksData.length > 0) {
+                console.log('⚠️ Member has associated tasks:', tasksData);
+                Alert.alert(
+                  'Não é Possível Remover',
+                  `${memberName} tem ${tasksData.length} tarefa(s) associada(s):\n\n` +
+                  tasksData.map(task => `• ${task.title}`).join('\n') +
+                  '\n\nRemova ou reatribua as tarefas primeiro.',
+                  [{ text: 'OK' }]
+                );
+                return;
+              }
+
+              console.log('✅ No tasks found for this member, proceeding with deletion...');
+
+              // Deletar o membro
+              const { error: deleteError } = await supabase
+                .from('family_members')
+                .delete()
+                .eq('id', memberId)
+                .eq('user_id', user.id); // Adiciona segurança extra
+
+              if (deleteError) {
+                console.error('❌ Error deleting member:', deleteError);
+                throw deleteError;
+              }
+
+              console.log('✅ Member deleted successfully from database');
+
+              // Atualizar a lista local forçando um refresh
+              console.log('🔄 Refreshing family members list...');
+              await fetchFamilyMembers();
+
+              // Mostrar mensagem de sucesso
+              Alert.alert('Sucesso', `${memberName} foi removido da família.`);
+
+            } catch (error: any) {
+              console.error('❌ Settings: Error deleting member:', {
+                error: error,
+                message: error?.message,
+                code: error?.code,
+                details: error?.details,
+                hint: error?.hint
+              });
+
+              // Mostra mensagem de erro específica
+              let errorMessage = error?.message || 'Erro desconhecido ao remover membro';
+
+              Alert.alert(
+                'Erro ao Remover Membro',
+                `Não foi possível remover "${memberName}".\n\nDetalhes: ${errorMessage}`
+              );
+            } finally {
+              console.log('🔚 Settings: Finishing delete process, resetting loading state');
+              setDeletingMember(null);
             }
           },
         },
@@ -364,10 +447,19 @@ export default function SettingsScreen() {
                     </View>
                     <TouchableOpacity
                       onPress={() => handleDeleteMember(member.id, member.name)}
-                      style={[styles.deleteButton, { backgroundColor: themeStyles.deleteButton + '20' }]}
+                      style={[
+                        styles.deleteButton,
+                        { backgroundColor: themeStyles.deleteButton + '20' },
+                        deletingMember === member.id && styles.disabledButton
+                      ]}
+                      disabled={deletingMember === member.id}
                       accessibilityLabel={`Remover ${member.name}`}
                     >
-                      <MaterialCommunityIcons name="delete" size={18} color={themeStyles.deleteButton} />
+                      {deletingMember === member.id ? (
+                        <ActivityIndicator size={16} color={themeStyles.deleteButton} />
+                      ) : (
+                        <MaterialCommunityIcons name="delete" size={18} color={themeStyles.deleteButton} />
+                      )}
                     </TouchableOpacity>
                   </View>
                 ))}
