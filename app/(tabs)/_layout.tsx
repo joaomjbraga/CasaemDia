@@ -23,7 +23,7 @@ export default function TabLayout() {
 
   const theme: Theme = {
     text: isDark ? '#FFFFFF' : '#010101',
-    background: isDark ? '#1E1E1E' : '#F5F5F5',
+    background: isDark ? '#1E1E1E' : '#f8f9fa',
     tint: isDark ? '#77ac74' : '#3E8E7E',
     tabIconDefault: isDark ? '#A0A0A0' : '#6B6B6B',
     tabIconSelected: isDark ? '#77ac74' : '#2D6B5F',
