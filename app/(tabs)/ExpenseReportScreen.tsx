@@ -1,8 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { handleSupabaseError, supabase } from '../../lib/supabase';
 
 interface Expense {
@@ -28,7 +27,6 @@ export default function ExpenseReportScreen({ isDark, theme }: ExpenseReportScre
   const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const navigation = useNavigation();
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
 
@@ -215,21 +213,6 @@ export default function ExpenseReportScreen({ isDark, theme }: ExpenseReportScre
             Relatório de Gastos
           </Text>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.backButton,
-            { backgroundColor: isDark ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
-          ]}
-          onPress={() => navigation.goBack()}
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            color={isDark ? '#1E1E1E' : '#FFFFFF'}
-            size={20}
-          />
-        </TouchableOpacity>
       </View>
 
       <View style={[
@@ -310,7 +293,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 20,
   },
   headerContent: {
@@ -325,10 +308,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  backButton: {
-    padding: 8,
-    borderRadius: 8,
   },
   summary: {
     marginBottom: 20,
