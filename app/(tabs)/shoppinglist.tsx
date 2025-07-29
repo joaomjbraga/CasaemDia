@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -42,6 +42,8 @@ export default function ShoppingList() {
   const [error, setError] = useState<string | null>(null);
   const [filterName, setFilterName] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [calculatorVisible, setCalculatorVisible] = useState(false);
+  const [calcDisplay, setCalcDisplay] = useState('0');
 
   // Função para buscar itens
   const fetchItems = useCallback(async () => {
@@ -262,6 +264,28 @@ export default function ShoppingList() {
     );
   };
 
+  const handleCalculatorPress = (value: string) => {
+    if (value === 'C') {
+      setCalcDisplay('0');
+      return;
+    }
+    if (value === '=') {
+      try {
+        const result = eval(calcDisplay);
+        setCalcDisplay(result.toString());
+      } catch {
+        setCalcDisplay('Erro');
+      }
+      return;
+    }
+    setCalcDisplay((prev) => {
+      if (prev === '0' || prev === 'Erro') {
+        return value;
+      }
+      return prev + value;
+    });
+  };
+
   const filteredItems = filterName
     ? items.filter((item) => item.name.toLowerCase().includes(filterName.toLowerCase()))
     : items;
@@ -312,7 +336,7 @@ export default function ShoppingList() {
           />
           <View style={styles.filterContainer}>
             <TextInput
-              style={[styles.input, { flex: 1, backgroundColor: themeColors.accent, color: themeColors.text,  marginBottom: 14 }]}
+              style={[styles.input, { flex: 1, backgroundColor: themeColors.accent, color: themeColors.text, marginBottom: 14 }]}
               placeholder="Filtrar itens"
               placeholderTextColor={themeColors.secondary}
               value={filterName}
@@ -393,6 +417,49 @@ export default function ShoppingList() {
             </Animated.View>
           ))}
         </ScrollView>
+
+        <TouchableOpacity
+          style={[styles.floatingButton, { backgroundColor: themeColors.highlight }]}
+          onPress={() => setCalculatorVisible(true)}
+          accessibilityLabel="Abrir calculadora"
+        >
+          <MaterialCommunityIcons name="calculator" size={24} color={themeColors.btn} />
+        </TouchableOpacity>
+
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={calculatorVisible}
+          onRequestClose={() => setCalculatorVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: themeColors.accent }]}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Calculadora</Text>
+              <View style={[styles.calcDisplay, { backgroundColor: themeColors.accent, borderColor: themeColors.secondary }]}>
+                <Text style={[styles.calcDisplayText, { color: themeColors.text }]}>{calcDisplay}</Text>
+              </View>
+              <View style={styles.calcButtons}>
+                {['7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', '0', '.', 'C', '+', '='].map((btn) => (
+                  <TouchableOpacity
+                    key={btn}
+                    style={[styles.calcButton, { backgroundColor: btn === '=' ? themeColors.highlight : themeColors.secondary }]}
+                    onPress={() => handleCalculatorPress(btn)}
+                    accessibilityLabel={`Botão ${btn === 'C' ? 'limpar' : btn === '=' ? 'calcular' : btn}`}
+                  >
+                    <Text style={[styles.calcButtonText, { color: themeColors.btn }]}>{btn}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: themeColors.secondary }]}
+                onPress={() => setCalculatorVisible(false)}
+                accessibilityLabel="Fechar calculadora"
+              >
+                <Text style={[styles.modalButtonText, { color: themeColors.btn }]}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -512,7 +579,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   itemsListContent: {
-    paddingBottom: 16,
+    paddingBottom: 80,
   },
   item: {
     flexDirection: 'row',
@@ -547,5 +614,77 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     letterSpacing: 0.2,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 100,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  calcDisplay: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  calcDisplayText: {
+    fontSize: 24,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  calcButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  calcButton: {
+    width: '22%',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calcButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalButton: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
