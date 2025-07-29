@@ -97,7 +97,7 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => router.push('/(tabs)/(stack)/index')}
+          onPress={() => router.navigate('/_settings')}
           style={[
             styles.quickActionItem,
             { backgroundColor: theme.tint + '20' },

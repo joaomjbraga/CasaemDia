@@ -14,7 +14,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 
-const SettingsScreen: React.FC = () => {
+export default function SettingsScreen () {
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
   const [monthlyBudget, setMonthlyBudget] = useState<string>('0,00');
@@ -314,5 +314,3 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
-
-export default SettingsScreen;
