@@ -11,11 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useFamilyMembers } from '../contexts/FamilyMembersContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
-
 export default function SettingsScreen() {
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
@@ -305,6 +305,7 @@ export default function SettingsScreen() {
   };
 
   return (
+    <SafeAreaView style={{flex:1, backgroundColor: themeStyles.background}} >
     <View style={[styles.container, { backgroundColor: themeStyles.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: themeStyles.buttonBackground }]}>
@@ -492,7 +493,8 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+      </View>
+      </SafeAreaView>
   );
 }
 
