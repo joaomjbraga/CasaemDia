@@ -1,5 +1,6 @@
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFamilyMembers } from '@/contexts/FamilyMembersContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useState } from 'react';
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const { isDark, toggleTheme } = useTheme();
   const theme = isDark ? Colors.dark : Colors.light;
   const { user, loading } = useAuth();
+  const { familyMembers, fetchFamilyMembers, loading: familyMembersLoading } = useFamilyMembers();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
 
@@ -37,21 +39,36 @@ export default function Dashboard() {
   const totalTasks = tasks.length;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
+  // Helper function to get family member ID by name
+  const getFamilyMemberIdByName = (name: string): number | null => {
+    const member = familyMembers.find(m => m.name === name);
+    return member ? member.id : null;
+  };
+
+  // Helper function to validate if assignee name exists in family members
+  const isValidAssignee = (name: string): boolean => {
+    return familyMembers.some(m => m.name === name);
+  };
+
   const updateCoupleStats = (): { [key: string]: CoupleStat } => {
-    const assignees = [...new Set(tasks.map(task => task.assignee))];
     const stats: { [key: string]: CoupleStat } = {};
-    assignees.forEach((assignee, index) => {
-      const points = tasks
-        .filter(t => t.assignee === assignee && t.done)
+
+    // Initialize stats for all family members
+    familyMembers.forEach((member, index) => {
+      const memberTasks = tasks.filter(t => t.assignee === member.name);
+      const points = memberTasks
+        .filter(t => t.done)
         .reduce((sum, t) => sum + t.points, 0);
-      const tasksCompleted = tasks.filter(t => t.assignee === assignee && t.done).length;
-      stats[assignee] = {
-        name: assignee,
+      const tasksCompleted = memberTasks.filter(t => t.done).length;
+
+      stats[member.name] = {
+        name: member.name,
         points,
-        avatar: index % 2 === 0 ? 'person' : 'person-outline', // Ícones válidos
+        avatar: index % 2 === 0 ? 'person' : 'person-outline',
         tasksCompleted,
       };
     });
+
     return stats;
   };
 
@@ -60,12 +77,20 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       fetchTasks();
+      fetchFamilyMembers();
+
       const subscription = supabase
         .channel('tasks')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${user.id}` }, () => {
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `user_id=eq.${user.id}`
+        }, () => {
           fetchTasks();
         })
         .subscribe();
+
       return () => {
         subscription.unsubscribe();
       };
@@ -73,7 +98,7 @@ export default function Dashboard() {
       setTasks([]);
       setTasksLoading(false);
     }
-  }, [user]);
+  }, [user, fetchFamilyMembers]);
 
   const fetchTasks = async () => {
     if (!user) {
@@ -132,16 +157,30 @@ export default function Dashboard() {
     }
   };
 
-  const addTask = async (title: string, assignee: string, points: number, due_date: string | null) => {
+  const addTask = async (title: string, assigneeId: number, points: number, due_date: string | null) => {
     if (!user) {
       Alert.alert('Erro', 'Usuário não autenticado.');
+      return;
+    }
+
+    // Find the family member by ID and get their name
+    const assignee = familyMembers.find(m => m.id === assigneeId);
+    if (!assignee) {
+      Alert.alert('Erro', 'Membro da família não encontrado.');
       return;
     }
 
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{ title, assignee, points, user_id: user.id, done: false, due_date }])
+        .insert([{
+          title,
+          assignee: assignee.name, // Use name instead of ID
+          points,
+          user_id: user.id,
+          done: false,
+          due_date
+        }])
         .select()
         .single();
 
@@ -182,7 +221,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading || tasksLoading) {
+  if (loading || tasksLoading || familyMembersLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar

@@ -17,45 +17,46 @@ interface RankingCardProps {
     tint: string;
     tabIconDefault: string;
     tabIconSelected: string;
-    bgConainer: string
+    bgConainer: string;
   };
   isDark: boolean;
 }
 
 export default function RankingCard({ coupleStats, theme, isDark }: RankingCardProps) {
-  const sortedStats = Object.values(coupleStats).sort((a, b) => b.points - a.points);
+  // Sort stats by points
+  const sortedStats = Object.values(coupleStats)
+    .sort((a, b) => b.points - a.points);
 
   return (
-    <View style={[styles.rankingCard, { backgroundColor: isDark ? '#151515' : '#fffffff8'  }]}>
+    <View style={[styles.rankingCard, { backgroundColor: isDark ? '#151515' : '#fffffff8' }]}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionHeaderLeft}>
-          <View style={[styles.sectionIcon, { backgroundColor: isDark ? 'hsl(0, 0%, 20.392156862745097%)' : 'rgba(0, 0, 0, 0.1)' }]}>
+          <View style={[styles.sectionIcon, { backgroundColor: isDark ? 'rgba(164, 164, 164, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}>
             <Ionicons name="trophy" color={theme.tint} size={16} />
           </View>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Ranking</Text>
         </View>
       </View>
       <View style={styles.rankingList}>
-        {sortedStats.map((stat, index) => (
-          <View key={stat.name} style={styles.rankingItem}>
-            <Text style={[styles.rankingPosition, { color: theme.tint }]}>{index + 1}º</Text>
-            <Ionicons
-              name={stat.avatar}
-              size={24}
-              color={index % 2 === 0 ? theme.tint : theme.tabIconSelected}
-            />
-            <View style={styles.rankingDetails}>
-              <Text style={[styles.rankingName, { color: theme.text }]}>{stat.name}</Text>
-              <Text style={[styles.rankingPoints, { color: theme.tabIconDefault }]}>
-                {stat.points} pontos, {stat.tasksCompleted} tarefas concluídas
-              </Text>
+        {sortedStats.length === 0 ? (
+          <Text style={[styles.emptyText, { color: theme.tabIconDefault }]}>Nenhuma tarefa atribuída ainda.</Text>
+        ) : (
+          sortedStats.map((stat, index) => (
+            <View key={stat.name} style={styles.rankingItem}>
+              <Text style={[styles.rankingPosition, { color: theme.tint }]}>{index + 1}º</Text>
+              <Ionicons
+                name={stat.avatar}
+                size={24}
+                color={index % 2 === 0 ? theme.tint : theme.tabIconSelected}
+              />
+              <View style={styles.rankingDetails}>
+                <Text style={[styles.rankingName, { color: theme.text }]}>{stat.name}</Text>
+                <Text style={[styles.rankingPoints, { color: theme.tabIconDefault }]}>
+                  {stat.points} pontos, {stat.tasksCompleted} tarefas concluídas
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
-        {sortedStats.length === 0 && (
-          <Text style={[styles.emptyText, { color: theme.tabIconDefault }]}>
-            Nenhuma tarefa atribuída ainda.
-          </Text>
+          ))
         )}
       </View>
     </View>

@@ -1,7 +1,9 @@
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
+import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useFamilyMembers } from '../contexts/FamilyMembersContext';
 
 interface Task {
   id: number;
@@ -23,11 +25,11 @@ interface TasksCardProps {
     tint: string;
     tabIconDefault: string;
     tabIconSelected: string;
-    bgConainer: string
+    bgConainer: string;
   };
   isDark: boolean;
   toggleTask: (id: number) => Promise<void>;
-  addTask: (title: string, assignee: string, points: number, due_date: string | null) => void;
+  addTask: (title: string, assignee_id: number, points: number, due_date: string | null) => void;
   deleteTask: (id: number) => void;
 }
 
@@ -43,13 +45,27 @@ export default function TasksCard({
   deleteTask,
 }: TasksCardProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskAssignee, setNewTaskAssignee] = useState('');
+  const [newTaskAssigneeId, setNewTaskAssigneeId] = useState<number | null>(null);
   const [newTaskPoints, setNewTaskPoints] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const { familyMembers, loading, fetchFamilyMembers } = useFamilyMembers();
+
+  useEffect(() => {
+    console.log('TasksCard: Family members updated:', familyMembers);
+    if (familyMembers.length > 0) {
+      if (!newTaskAssigneeId || !familyMembers.some((member) => member.id === newTaskAssigneeId)) {
+        console.log('TasksCard: Setting newTaskAssigneeId to:', familyMembers[0].id);
+        setNewTaskAssigneeId(familyMembers[0].id);
+      }
+    } else {
+      console.log('TasksCard: No family members, setting newTaskAssigneeId to null');
+      setNewTaskAssigneeId(null);
+    }
+  }, [familyMembers, newTaskAssigneeId]);
 
   const handleAddTask = () => {
-    if (!newTaskTitle || !newTaskAssignee || !newTaskPoints) {
+    if (!newTaskTitle || !newTaskAssigneeId || !newTaskPoints) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
@@ -59,11 +75,14 @@ export default function TasksCard({
       return;
     }
     const dueDate = newTaskDueDate ? newTaskDueDate.toISOString() : null;
-    addTask(newTaskTitle, newTaskAssignee, points, dueDate);
+    console.log('TasksCard: Adding task:', { title: newTaskTitle, assignee_id: newTaskAssigneeId, points, due_date: dueDate });
+    addTask(newTaskTitle, newTaskAssigneeId, points, dueDate);
     setNewTaskTitle('');
-    setNewTaskAssignee('');
     setNewTaskPoints('');
     setNewTaskDueDate(null);
+    if (familyMembers.length > 0) {
+      setNewTaskAssigneeId(familyMembers[0].id);
+    }
   };
 
   const handleDeleteTask = (id: number) => {
@@ -84,6 +103,11 @@ export default function TasksCard({
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  // Helper function to validate if task assignee still exists in family members
+  const isValidTaskAssignee = (assigneeName: string): boolean => {
+    return familyMembers.some(member => member.name === assigneeName);
   };
 
   return (
@@ -127,7 +151,11 @@ export default function TasksCard({
                 {task.title}
               </Text>
               <View style={styles.taskMeta}>
-                <Text style={[styles.taskAssignee, { color: theme.tabIconDefault }]}>{task.assignee}</Text>
+                <Text style={[styles.taskAssignee, {
+                  color: isValidTaskAssignee(task.assignee) ? theme.tabIconDefault : '#ff6b6b'
+                }]}>
+                  {isValidTaskAssignee(task.assignee) ? task.assignee : `${task.assignee} (removido)`}
+                </Text>
                 <View style={styles.taskPoints}>
                   <MaterialCommunityIcons name="star" size={12} color={theme.tabIconSelected} />
                   <Text style={[styles.taskPointsText, { color: theme.tabIconSelected }]}>{task.points} pts</Text>
@@ -150,13 +178,20 @@ export default function TasksCard({
           value={newTaskTitle}
           onChangeText={setNewTaskTitle}
         />
-        <TextInput
-          style={[styles.input, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
-          placeholder="Responsável"
-          placeholderTextColor={theme.tabIconDefault}
-          value={newTaskAssignee}
-          onChangeText={setNewTaskAssignee}
-        />
+        <Picker
+          selectedValue={newTaskAssigneeId}
+          onValueChange={(itemValue) => setNewTaskAssigneeId(itemValue)}
+          style={[styles.picker, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
+          enabled={!loading}
+        >
+          {familyMembers.length === 0 ? (
+            <Picker.Item label="Nenhum membro disponível" value={null} />
+          ) : (
+            familyMembers.map((member) => (
+              <Picker.Item key={member.id} label={member.name} value={member.id} />
+            ))
+          )}
+        </Picker>
         <TextInput
           style={[styles.input, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
           placeholder="Pontos"
@@ -187,6 +222,14 @@ export default function TasksCard({
         <TouchableOpacity style={[styles.addTaskButton, { backgroundColor: theme.tint }]} onPress={handleAddTask}>
           <MaterialCommunityIcons name="plus" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={18} />
           <Text style={[styles.addTaskText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>Adicionar Tarefa</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryButton, { borderColor: theme.tabIconDefault }]}
+          onPress={fetchFamilyMembers}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="refresh" color={theme.tabIconDefault} size={18} />
+          <Text style={[styles.secondaryButtonText, { color: theme.tabIconDefault }]}>Atualizar Membros</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -311,6 +354,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 14,
   },
+  picker: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
   addTaskButton: {
     flex: 2,
     flexDirection: 'row',
@@ -335,6 +386,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
+    marginTop: 8,
   },
   secondaryButtonText: {
     fontWeight: '500',

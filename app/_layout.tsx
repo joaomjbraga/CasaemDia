@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { FamilyMembersProvider } from '@/contexts/FamilyMembersContext';
 import { ThemeProvider as CustomThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
@@ -41,7 +42,9 @@ export default function RootLayout() {
   return (
     <CustomThemeProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <FamilyMembersProvider>
+          <RootLayoutNav />
+        </FamilyMembersProvider>
       </AuthProvider>
     </CustomThemeProvider>
   );
