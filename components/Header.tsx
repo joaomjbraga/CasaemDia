@@ -14,14 +14,15 @@ interface HeaderProps {
   } | null;
   isDark: boolean;
   onOpenSettings?: () => void;
+  onToggleTheme?: () => void;
 }
 
-export default function Header({ user, isDark, onOpenSettings }: HeaderProps) {
+export default function Header({ user, isDark, onOpenSettings, onToggleTheme }: HeaderProps) {
   const { signOut } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const themeColors = isDark
+ const themeColors = isDark
     ? { gradient: ['#C9F31D', '#9AB821'] as const, text: '#010101', accent: 'rgba(255, 255, 255, 0.1)' }
     : { gradient: ['#3E8E7E', '#2D6B5F'] as const, text: '#FFFFFF', accent: 'rgba(255, 255, 255, 0.1)' };
 
@@ -57,6 +58,12 @@ export default function Header({ user, isDark, onOpenSettings }: HeaderProps) {
         },
       ]
     );
+  };
+
+  const handleToggleTheme = () => {
+    if (onToggleTheme) {
+      onToggleTheme();
+    }
   };
 
   const getTimeOfDay = () => {
@@ -114,6 +121,21 @@ export default function Header({ user, isDark, onOpenSettings }: HeaderProps) {
         </View>
 
         <View style={styles.actions}>
+          {/* Theme Toggle Button */}
+          {onToggleTheme && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleToggleTheme}
+              accessibilityLabel={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
+            >
+              <MaterialCommunityIcons
+                name={isDark ? "white-balance-sunny" : "moon-waning-crescent"}
+                size={20}
+                color={themeColors.text}
+              />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={styles.actionButton}
             onPress={handleLogout}

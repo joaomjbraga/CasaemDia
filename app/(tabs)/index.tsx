@@ -1,8 +1,9 @@
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import BalanceCard from '../../components/BalanceCard';
 import Header from '../../components/Header';
 import QuickActions from '../../components/QuickActions';
@@ -26,8 +27,7 @@ interface CoupleStat {
 }
 
 export default function Dashboard() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark, toggleTheme } = useTheme();
   const theme = isDark ? Colors.dark : Colors.light;
   const { user, loading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -185,6 +185,10 @@ export default function Dashboard() {
   if (loading || tasksLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={isDark ? '#C9F31D' : '#3E8E7E'}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.tint} />
           <Text style={[styles.loadingText, { color: theme.text }]}>Carregando...</Text>
@@ -204,7 +208,11 @@ export default function Dashboard() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Header user={user} isDark={isDark} />
+        <Header
+          user={user}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+        />
 
         <BalanceCard isDark={isDark} theme={theme} />
         <RankingCard

@@ -1,3 +1,4 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,12 +17,8 @@ interface BalanceData {
   monthly_budget: number;
 }
 
-interface ExpenseReportScreenProps {
-  isDark: boolean;
-  theme: any;
-}
-
-export default function ExpenseReportScreen({ isDark, theme }: ExpenseReportScreenProps) {
+export default function ExpenseReportScreen() {
+  const { isDark } = useTheme();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpenses, setTotalExpenses] = useState<number>(0);
   const [monthlyBudget, setMonthlyBudget] = useState<number>(0);

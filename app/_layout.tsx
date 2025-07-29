@@ -1,7 +1,7 @@
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemeProvider as CustomThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -39,16 +39,21 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <CustomThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </CustomThemeProvider>
   );
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const { isDark } = useTheme();
   const { user, loading, initialized } = useAuth();
   const [lastNavigation, setLastNavigation] = useState<string | null>(null);
+
+  // Usar o tema customizado para a navegação
+  const navigationTheme = isDark ? DarkTheme : DefaultTheme;
 
   useEffect(() => {
     if (!initialized || loading) return;
@@ -63,35 +68,38 @@ function RootLayoutNav() {
   if (!initialized || loading) {
     return (
       <SafeAreaProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <NavigationThemeProvider value={navigationTheme}>
           <View
             style={{
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: colorScheme === 'dark' ? '#000' : '#fff',
+              backgroundColor: isDark ? '#000' : '#fff',
             }}
           >
-            <ActivityIndicator size="large" color={colorScheme === 'dark' ? '#C9F31D' : '#3E8E7E'} />
+            <ActivityIndicator
+              size="large"
+              color={isDark ? '#C9F31D' : '#3E8E7E'}
+            />
             <Text
               style={{
                 marginTop: 16,
                 fontSize: 16,
                 fontWeight: '500',
-                color: colorScheme === 'dark' ? '#C9F31D' : '#3E8E7E',
+                color: isDark ? '#C9F31D' : '#3E8E7E',
               }}
             >
               Carregando...
             </Text>
           </View>
-        </ThemeProvider>
+        </NavigationThemeProvider>
       </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <NavigationThemeProvider value={navigationTheme}>
         <Stack
           screenOptions={{
             headerShown: false,
@@ -127,7 +135,7 @@ function RootLayoutNav() {
             }}
           />
         </Stack>
-      </ThemeProvider>
+      </NavigationThemeProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { useColorScheme } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext'; // Ajuste o caminho conforme necessário
 
 interface Theme {
   text: string;
@@ -19,11 +19,10 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme() as 'light' | 'dark';
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   const theme: Theme = {
-    text: isDark ? '#010101' : '#FFFFFF',
+    text: isDark ? '#FFFFFF' : '#010101',
     background: isDark ? '#1E1E1E' : '#F5F5F5',
     tint: isDark ? '#C9F31D' : '#3E8E7E',
     tabIconDefault: isDark ? '#A0A0A0' : '#6B6B6B',
@@ -64,7 +63,6 @@ export default function TabLayout() {
           title: 'Relatórios',
           tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
           tabBarLabel: 'Historico mês',
-
         }}
       />
     </Tabs>
