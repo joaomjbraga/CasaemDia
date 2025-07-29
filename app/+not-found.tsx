@@ -1,64 +1,70 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet, useColorScheme, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
-
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function NotFoundScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark, toggleTheme } = useTheme();
   const theme = isDark ? Colors.dark : Colors.light;
   const router = useRouter();
 
   const handleGoHome = () => {
-    router.push('/');
+    router.navigate('/');
   };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Ops! 😅' }} />
+      <Stack.Screen
+        options={{
+          title: 'Ops! 😅',
+          headerRight: () => (
+            <TouchableOpacity onPress={toggleTheme} style={{ marginRight: 16 }}>
+              <MaterialCommunityIcons
+                name={isDark ? 'white-balance-sunny' : 'moon-waning-crescent'}
+                size={24}
+                color={theme.text}
+              />
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        {/* Ícone ilustrativo */}
         <View style={[styles.iconContainer, { backgroundColor: `${theme.tint}15` }]}>
-          <MaterialCommunityIcons 
-            name="heart-broken" 
-            size={80} 
-            color={theme.tint} 
+          <MaterialCommunityIcons
+            name="heart-broken"
+            size={80}
+            color={theme.tint}
           />
         </View>
 
-        {/* Título principal */}
         <Text style={[styles.title, { color: theme.text }]}>
           Houston, temos um problema! 🚀
         </Text>
 
-        {/* Descrição cômica */}
         <Text style={[styles.description, { color: theme.tabIconDefault }]}>
           Parece que vocês se perderam navegando pela casa! 🏠
           {'\n\n'}
           Assim como quando um dos dois "tem certeza" de que conhece o caminho... 😄
         </Text>
 
-        {/* Botão de retorno */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.tint }]}
           onPress={handleGoHome}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons 
-            name="home-heart" 
-            size={20} 
-            color={isDark ? "#000" : "#fff"} 
+          <MaterialCommunityIcons
+            name="home-heart"
+            size={20}
+            color={isDark ? "#000" : "#fff"}
           />
           <Text style={[styles.buttonText, { color: isDark ? "#000" : "#fff" }]}>
             Voltar para casa ❤️
           </Text>
         </TouchableOpacity>
 
-        {/* Texto adicional com humor */}
         <Text style={[styles.helpText, { color: theme.tabIconDefault }]}>
           Prometo que não vou dizer "eu avisei" desta vez! 😉
         </Text>

@@ -134,6 +134,13 @@ function RootLayoutNav() {
               gestureEnabled: false,
             }}
           />
+          <Stack.Screen
+            name="settings"
+            options={{
+              headerShown: false,
+              gestureEnabled: false,
+            }}
+          />
         </Stack>
       </NavigationThemeProvider>
     </SafeAreaProvider>

@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -13,16 +14,16 @@ interface HeaderProps {
     email?: string;
   } | null;
   isDark: boolean;
-  onOpenSettings?: () => void;
   onToggleTheme?: () => void;
 }
 
-export default function Header({ user, isDark, onOpenSettings, onToggleTheme }: HeaderProps) {
+export default function Header({ user, isDark, onToggleTheme }: HeaderProps) {
   const { signOut } = useAuth();
+  const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
- const themeColors = isDark
+  const themeColors = isDark
     ? { gradient: ['#C9F31D', '#9AB821'] as const, text: '#010101', accent: 'rgba(255, 255, 255, 0.1)' }
     : { gradient: ['#3E8E7E', '#2D6B5F'] as const, text: '#FFFFFF', accent: 'rgba(255, 255, 255, 0.1)' };
 
@@ -64,6 +65,10 @@ export default function Header({ user, isDark, onOpenSettings, onToggleTheme }: 
     if (onToggleTheme) {
       onToggleTheme();
     }
+  };
+
+  const handleOpenSettings = () => {
+    router.push('/_settings');
   };
 
   const getTimeOfDay = () => {
@@ -153,19 +158,17 @@ export default function Header({ user, isDark, onOpenSettings, onToggleTheme }: 
             )}
           </TouchableOpacity>
 
-          {onOpenSettings && (
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={onOpenSettings}
-              accessibilityLabel="Configurações"
-            >
-              <MaterialCommunityIcons
-                name="cog-outline"
-                size={20}
-                color={themeColors.text}
-              />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleOpenSettings}
+            accessibilityLabel="Configurações"
+          >
+            <MaterialCommunityIcons
+              name="cog-outline"
+              size={20}
+              color={themeColors.text}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 

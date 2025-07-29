@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ConstructionModal from './ConstructionModal';
@@ -20,7 +20,7 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const openModal = () => setModalVisible(true);
   const closeModal = () => setModalVisible(false);
-  const rota = useRouter()
+
   return (
     <View style={[styles.quickActions, { backgroundColor: theme.background }]}>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -77,7 +77,7 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={openModal}
+          onPress={() => router.push('/(tabs)/ExpenseReportScreen')}
           style={[
             styles.quickActionItem,
             { backgroundColor: theme.tabIconSelected + '20' },
@@ -97,7 +97,7 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={openModal}
+          onPress={() => router.push('/(tabs)/(stack)/index')}
           style={[
             styles.quickActionItem,
             { backgroundColor: theme.tint + '20' },

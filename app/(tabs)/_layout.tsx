@@ -65,6 +65,7 @@ export default function TabLayout() {
           tabBarLabel: 'Historico mês',
         }}
       />
+      <Tabs.Screen name='(stack)' options={{href: null}} />
     </Tabs>
   );
 }
