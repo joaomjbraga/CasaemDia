@@ -79,14 +79,14 @@ function RootLayoutNav() {
           >
             <ActivityIndicator
               size="large"
-              color={isDark ? '#C9F31D' : '#3E8E7E'}
+              color={isDark ? '#77ac74' : '#3E8E7E'}
             />
             <Text
               style={{
                 marginTop: 16,
                 fontSize: 16,
                 fontWeight: '500',
-                color: isDark ? '#C9F31D' : '#3E8E7E',
+                color: isDark ? '#77ac74' : '#3E8E7E',
               }}
             >
               Carregando...

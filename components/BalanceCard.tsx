@@ -524,7 +524,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
                 style={[
                   styles.addButton,
                   {
-                    backgroundColor: isDark ? '#C9F31D' : '#2D6B5F',
+                    backgroundColor: isDark ? '#77ac74' : '#2D6B5F',
                     opacity: isSubmitting ? 0.6 : 1,
                   }
                 ]}
