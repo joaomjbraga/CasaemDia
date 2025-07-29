@@ -12,11 +12,6 @@ interface Expense {
   created_at: string;
 }
 
-interface BalanceData {
-  total_balance: number;
-  monthly_budget: number;
-}
-
 export default function ExpenseReportScreen() {
   const { isDark } = useTheme();
   const [expenses, setExpenses] = useState<Expense[]>([]);

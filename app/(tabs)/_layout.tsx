@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { useTheme } from '../../contexts/ThemeContext'; // Ajuste o caminho conforme necessário
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Theme {
   text: string;
