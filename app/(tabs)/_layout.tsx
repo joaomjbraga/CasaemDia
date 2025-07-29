@@ -58,6 +58,15 @@ export default function TabLayout() {
           tabBarLabel: 'Lista de Compras',
         }}
       />
+      <Tabs.Screen
+        name='ExpenseReportScreen'
+        options={{
+          title: 'Relatórios',
+          tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
+          tabBarLabel: 'Historico mês',
+
+        }}
+      />
     </Tabs>
   );
 }

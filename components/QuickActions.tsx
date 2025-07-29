@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useRouter } from "expo-router";
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ConstructionModal from './ConstructionModal';
-
 const { width } = Dimensions.get('window');
 
 interface QuickActionsProps {
@@ -18,10 +18,9 @@ interface QuickActionsProps {
 
 export default function QuickActions({ theme, isDark }: QuickActionsProps) {
   const [modalVisible, setModalVisible] = useState(false);
-
   const openModal = () => setModalVisible(true);
   const closeModal = () => setModalVisible(false);
-
+  const rota = useRouter()
   return (
     <View style={[styles.quickActions, { backgroundColor: theme.background }]}>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -30,7 +29,7 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
 
       <View style={styles.quickActionsGrid}>
         <TouchableOpacity
-          onPress={openModal}
+          onPress={() => router.push('/(tabs)/shoppinglist')}
           style={[
             styles.quickActionItem,
             {
