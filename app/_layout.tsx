@@ -1,8 +1,7 @@
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { FamilyMembersProvider } from '@/contexts/FamilyMembersContext';
-import { ThemeProvider as CustomThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,11 +9,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Colors from '../constants/Colors';
 
 export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  initialRouteName: '(tabs)', // Corrigido para apontar para o grupo (tabs)
 };
 
 SplashScreen.preventAutoHideAsync();
@@ -40,23 +40,17 @@ export default function RootLayout() {
   }
 
   return (
-    <CustomThemeProvider>
-      <AuthProvider>
-        <FamilyMembersProvider>
-          <RootLayoutNav />
-        </FamilyMembersProvider>
-      </AuthProvider>
-    </CustomThemeProvider>
+    <AuthProvider>
+      <FamilyMembersProvider>
+        <RootLayoutNav />
+      </FamilyMembersProvider>
+    </AuthProvider>
   );
 }
 
 function RootLayoutNav() {
-  const { isDark } = useTheme();
   const { user, loading, initialized } = useAuth();
   const [lastNavigation, setLastNavigation] = useState<string | null>(null);
-
-  // Usar o tema customizado para a navegação
-  const navigationTheme = isDark ? DarkTheme : DefaultTheme;
 
   useEffect(() => {
     if (!initialized || loading) return;
@@ -71,25 +65,25 @@ function RootLayoutNav() {
   if (!initialized || loading) {
     return (
       <SafeAreaProvider>
-        <NavigationThemeProvider value={navigationTheme}>
+        <NavigationThemeProvider value={DefaultTheme}>
           <View
             style={{
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: isDark ? '#000' : '#fff',
+              backgroundColor: Colors.light.backgroundSecondary, // Usa Colors.light
             }}
           >
             <ActivityIndicator
               size="large"
-              color={isDark ? '#f86565' : '#3E8E7E'}
+              color={Colors.light.primary} // Usa Colors.light
             />
             <Text
               style={{
                 marginTop: 16,
                 fontSize: 16,
                 fontWeight: '500',
-                color: isDark ? '#77ac74' : '#3E8E7E',
+                color: Colors.light.secondary, // Usa Colors.light
               }}
             >
               Carregando...
@@ -102,7 +96,7 @@ function RootLayoutNav() {
 
   return (
     <SafeAreaProvider>
-      <NavigationThemeProvider value={navigationTheme}>
+      <NavigationThemeProvider value={DefaultTheme}>
         <Stack
           screenOptions={{
             headerShown: false,

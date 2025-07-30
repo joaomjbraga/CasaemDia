@@ -1,6 +1,19 @@
+import Colors from '@/constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  ColorValue,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 interface CoupleStat {
   name: string;
@@ -11,47 +24,21 @@ interface CoupleStat {
 
 interface RankingCardProps {
   coupleStats: { [key: string]: CoupleStat };
-  theme: {
-    text: string;
-    background: string;
-    tint: string;
-    tabIconDefault: string;
-    tabIconSelected: string;
-    bgConainer: string;
-  };
+  theme: any;
   isDark: boolean;
 }
 
-export default function RankingCard({ coupleStats, theme, isDark }: RankingCardProps) {
-  // Animações
+export default function RankingCard({ coupleStats, isDark }: RankingCardProps) {
   const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
+  const slideAnim = new Animated.Value(40);
+  const scaleAnims = Object.keys(coupleStats).map(() => new Animated.Value(1));
   const progressAnims = Object.keys(coupleStats).map(() => new Animated.Value(0));
 
-  // Cores neutras e familiares
-  const cardColors = isDark
-    ? {
-        cardBg: '#1F2937',
-        itemBg: 'rgba(249, 250, 251, 0.06)',
-        text: '#F9FAFB',
-        subtitle: '#9CA3AF',
-        border: 'rgba(249, 250, 251, 0.1)',
-        accent: '#6B7280'
-      }
-    : {
-        cardBg: '#FFFFFF',
-        itemBg: 'rgba(139, 115, 85, 0.06)',
-        text: '#111827',
-        subtitle: '#6B7280',
-        border: 'rgba(139, 115, 85, 0.1)',
-        accent: '#8B7355'
-      };
+  const cardColors = isDark ? Colors.dark : Colors.light;
 
-  // Sort stats by points
-  const sortedStats = Object.values(coupleStats)
-    .sort((a, b) => b.points - a.points);
+  const sortedStats = Object.values(coupleStats).sort((a, b) => b.points - a.points);
+  const maxPoints = Math.max(...sortedStats.map((stat) => stat.points), 1);
 
-  // Animação de entrada
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -67,368 +54,438 @@ export default function RankingCard({ coupleStats, theme, isDark }: RankingCardP
       ...progressAnims.map((anim, index) =>
         Animated.timing(anim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           delay: index * 200,
           useNativeDriver: false,
         })
       ),
     ]).start();
+
+    return () => {
+      progressAnims.forEach((anim) => anim.stopAnimation());
+      scaleAnims.forEach((anim) => anim.stopAnimation());
+    };
   }, [coupleStats]);
-
-  // Cores das posições
-  const getPositionColor = (position: number) => {
-    switch (position) {
-      case 0: return '#FFD700'; // Ouro
-      case 1: return '#C0C0C0'; // Prata
-      case 2: return '#CD7F32'; // Bronze
-      default: return cardColors.accent;
-    }
-  };
-
-  // Ícone da posição
-  const getPositionIcon = (position: number) => {
-    switch (position) {
-      case 0: return 'trophy';
-      case 1: return 'medal';
-      case 2: return 'medal-outline';
-      default: return 'star-outline';
-    }
-  };
-
-  // Calcular progresso relativo
-  const maxPoints = Math.max(...sortedStats.map(stat => stat.points), 1);
 
   return (
     <Animated.View
       style={[
-        styles.rankingCard,
+        styles.card,
         {
-          backgroundColor: cardColors.cardBg,
+          backgroundColor: cardColors.cardBackground,
+          borderColor: cardColors.cardBackground,
           opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
+          transform: [{ translateY: slideAnim }],
+        },
       ]}
     >
-      {/* Header melhorado */}
-      <View style={styles.modernHeader}>
-        <View style={styles.headerLeft}>
-          <View style={[styles.trophyContainer, { backgroundColor: cardColors.itemBg }]}>
-            <MaterialCommunityIcons
-              name="trophy-outline"
-              color={cardColors.accent}
-              size={24}
-            />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={[styles.sectionTitle, { color: cardColors.text }]}>
-              Ranking Familiar
-            </Text>
-            <Text style={[styles.sectionSubtitle, { color: cardColors.subtitle }]}>
-              Conquistas e tarefas concluídas
-            </Text>
-          </View>
-        </View>
+      <RankingHeader total={sortedStats.reduce((s, s2) => s + s2.tasksCompleted, 0)} color={cardColors} />
 
-        {sortedStats.length > 0 && (
-          <View style={[styles.totalStats, { backgroundColor: cardColors.itemBg }]}>
-            <Text style={[styles.totalNumber, { color: cardColors.accent }]}>
-              {sortedStats.reduce((sum, stat) => sum + stat.tasksCompleted, 0)}
-            </Text>
-            <Text style={[styles.totalLabel, { color: cardColors.subtitle }]}>
-              Total
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Lista de ranking */}
-      <View style={styles.rankingList}>
+      <ScrollView
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      >
         {sortedStats.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="trophy-broken"
-              size={48}
-              color={cardColors.subtitle}
-              style={{ opacity: 0.5, marginBottom: 16 }}
-            />
-            <Text style={[styles.emptyTitle, { color: cardColors.text }]}>
-              Nenhuma conquista ainda
-            </Text>
-            <Text style={[styles.emptyText, { color: cardColors.subtitle }]}>
-              Complete tarefas para aparecer no ranking!
-            </Text>
-          </View>
+          <RankingEmptyState color={cardColors} />
         ) : (
-          sortedStats.map((stat, index) => {
-            const progressWidth = progressAnims[index]?.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0%', `${(stat.points / maxPoints) * 100}%`],
-              extrapolate: 'clamp',
-            }) || '0%';
-
-            return (
-              <View key={stat.name} style={[styles.rankingItem, { backgroundColor: cardColors.itemBg }]}>
-                {/* Posição e ícone */}
-                <View style={styles.positionSection}>
-                  <View style={[
-                    styles.positionBadge,
-                    { backgroundColor: getPositionColor(index) + '20' }
-                  ]}>
-                    <MaterialCommunityIcons
-                      name={getPositionIcon(index) as any}
-                      size={20}
-                      color={getPositionColor(index)}
-                    />
-                  </View>
-                  <Text style={[styles.positionText, { color: getPositionColor(index) }]}>
-                    {index + 1}º
-                  </Text>
-                </View>
-
-                {/* Avatar e informações */}
-                <View style={styles.userSection}>
-                  <View style={[styles.avatarContainer, { backgroundColor: cardColors.accent + '20' }]}>
-                    <Ionicons
-                      name={stat.avatar}
-                      size={24}
-                      color={cardColors.accent}
-                    />
-                  </View>
-
-                  <View style={styles.userInfo}>
-                    <Text style={[styles.userName, { color: cardColors.text }]}>
-                      {stat.name}
-                    </Text>
-                    <View style={styles.statsRow}>
-                      <View style={styles.statItem}>
-                        <MaterialCommunityIcons name="star" size={12} color={cardColors.accent} />
-                        <Text style={[styles.statText, { color: cardColors.subtitle }]}>
-                          {stat.points} pts
-                        </Text>
-                      </View>
-                      <View style={styles.statDivider} />
-                      <View style={styles.statItem}>
-                        <MaterialCommunityIcons name="check-circle" size={12} color="#22c55e" />
-                        <Text style={[styles.statText, { color: cardColors.subtitle }]}>
-                          {stat.tasksCompleted} tarefas
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Barra de progresso */}
-                <View style={styles.progressSection}>
-                  <View style={[styles.progressBar, { backgroundColor: cardColors.border }]}>
-                    <Animated.View
-                      style={[
-                        styles.progressFill,
-                        {
-                          backgroundColor: getPositionColor(index),
-                          width: progressWidth,
-                        }
-                      ]}
-                    />
-                  </View>
-                </View>
-              </View>
-            );
-          })
+          sortedStats.slice(0, 5).map((stat, index) => (
+            <RankingItem
+              key={stat.name}
+              stat={stat}
+              index={index}
+              maxPoints={maxPoints}
+              color={cardColors}
+              scaleAnim={scaleAnims[index]}
+              progressAnim={progressAnims[index]}
+              isDark={isDark}
+            />
+          ))
         )}
-      </View>
+      </ScrollView>
 
-      {/* Rodapé motivacional */}
-      {sortedStats.length > 0 && (
-        <View style={[styles.motivationalFooter, { borderTopColor: cardColors.border }]}>
-          <MaterialCommunityIcons
-            name="lightbulb-on-outline"
-            size={16}
-            color={cardColors.accent}
-          />
-          <Text style={[styles.motivationalText, { color: cardColors.subtitle }]}>
-            {sortedStats.length === 1
-              ? "Continue assim! Mais tarefas = mais pontos"
-              : "Parabéns a todos pelos resultados!"}
-          </Text>
-        </View>
-      )}
+      {sortedStats.length > 0 && <RankingFooter color={cardColors} />}
     </Animated.View>
   );
 }
 
+const getGradient = (position: number, isDark: boolean): readonly [ColorValue, ColorValue] => {
+  if (isDark) {
+    switch (position) {
+      case 0:
+        return ['#FFD700', '#D4AF37'];
+      case 1:
+        return ['#C0C0C0', '#A0A0A0'];
+      case 2:
+        return ['#CD7F32', '#B87333'];
+      default:
+        return ['#161616', '#0A0A0A'];
+    }
+  } else {
+    switch (position) {
+      case 0:
+        return ['#B8860B', '#FFD700'];
+      case 1:
+        return ['#708090', '#C0C0C0'];
+      case 2:
+        return ['#A0522D', '#CD7F32'];
+      default:
+        return ['#3b3240', '#2a252d'];
+    }
+  }
+};
+
+const getIcon = (position: number) => {
+  switch (position) {
+    case 0:
+      return 'crown';
+    case 1:
+      return 'medal';
+    case 2:
+      return 'trophy-variant';
+    default:
+      return 'account-circle-outline';
+  }
+};
+
+const getRankColor = (position: number, isDark: boolean) => {
+  if (isDark) {
+    switch (position) {
+      case 0:
+        return '#D4AF37';
+      case 1:
+        return '#C0C0C0';
+      case 2:
+        return '#CD7F32';
+      default:
+        return '#71717A';
+    }
+  } else {
+    switch (position) {
+      case 0:
+        return '#B8860B';
+      case 1:
+        return '#708090';
+      case 2:
+        return '#A0522D';
+      default:
+        return '#52525B';
+    }
+  }
+};
+
+function RankingHeader({ total, color }: { total: number; color: any }) {
+  return (
+    <View style={styles.header}>
+      <View style={[styles.headerIcon, { backgroundColor: color.itemBg, borderColor: color.border }]}>
+        <MaterialCommunityIcons name="trophy" size={20} color={color.accent} />
+      </View>
+      <View style={styles.headerContent}>
+        <Text style={[styles.title, { color: color.text }]}>Ranking Familiar</Text>
+        <Text style={[styles.subtitle, { color: color.subtitle }]}>Liderança atual</Text>
+      </View>
+      <View style={[styles.badge, { backgroundColor: color.itemBg, borderColor: color.border }]}>
+        <Text style={[styles.badgeText, { color: color.accent }]}>{total}</Text>
+        <Text style={[styles.badgeLabel, { color: color.mutedText }]}>tarefas</Text>
+      </View>
+    </View>
+  );
+}
+
+function RankingItem({
+  stat,
+  index,
+  maxPoints,
+  color,
+  scaleAnim,
+  progressAnim,
+  isDark,
+}: {
+  stat: CoupleStat;
+  index: number;
+  maxPoints: number;
+  color: any;
+  scaleAnim: Animated.Value;
+  progressAnim: Animated.Value;
+  isDark: boolean;
+}) {
+  const handlePress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.96,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', `${(stat.points / maxPoints) * 100}%`],
+    extrapolate: 'clamp',
+  });
+
+  const gradient = getGradient(index, isDark);
+  const rankColor = getRankColor(index, isDark);
+
+  return (
+    <TouchableOpacity activeOpacity={0.8} onPress={handlePress} style={styles.item}>
+      <Animated.View
+        style={[
+          styles.itemContainer,
+          {
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.itemContent, { borderColor: color.border }]}
+        >
+          <View style={styles.rankSection}>
+            <View style={[styles.rankIcon, { backgroundColor: rankColor }]}>
+              <MaterialCommunityIcons name={getIcon(index)} size={14} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.rankText, { color: rankColor }]}>{index + 1}º</Text>
+          </View>
+
+          <View style={styles.userSection}>
+            <View style={[styles.avatar, { backgroundColor: color.cardBg, borderColor: color.border }]}>
+              <Ionicons name={stat.avatar} size={18} color={color.accent} />
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={[styles.userName, { color: color.text }]}>{stat.name}</Text>
+              <View style={styles.statsRow}>
+                <Text style={[styles.userStats, { color: rankColor }]}>{stat.points} pts</Text>
+                <Text style={[styles.userStats, { color: color.mutedText }]}> • {stat.tasksCompleted} tarefas</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.progress}>
+            <View style={[styles.progressBar, { backgroundColor: color.border }]}>
+              <Animated.View style={[styles.progressFill, { backgroundColor: rankColor, width: progressWidth }]} />
+            </View>
+            <Text style={[styles.progressText, { color: color.mutedText }]}> {Math.round((stat.points / maxPoints) * 100)}%</Text>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+function RankingEmptyState({ color }: { color: any }) {
+  return (
+    <View style={[styles.empty, { backgroundColor: color.itemBg, borderColor: color.border }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: color.cardBg }]}>
+        <MaterialCommunityIcons name="trophy-broken" size={32} color={color.mutedText} />
+      </View>
+      <Text style={[styles.emptyTitle, { color: color.text }]}>Nenhum registro ainda</Text>
+      <Text style={[styles.emptySubtitle, { color: color.subtitle }]}>Complete tarefas para aparecer no ranking</Text>
+    </View>
+  );
+}
+
+function RankingFooter({ color }: { color: any }) {
+  return (
+    <View style={[styles.footer, { borderTopColor: color.border }]}>
+      <MaterialCommunityIcons name="star-circle" size={12} color={color.mutedText} />
+      <Text style={[styles.footerText, { color: color.mutedText }]}>Continue completando tarefas para subir no ranking</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  rankingCard: {
-    marginHorizontal: 20,
-    padding: 24,
-    borderRadius: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  modernHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  trophyContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  headerText: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-    marginBottom: 2,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    fontWeight: '400',
-    opacity: 0.8,
-  },
-  totalStats: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    minWidth: 80,
-  },
-  totalNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  totalLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    opacity: 0.8,
-  },
-  rankingList: {
-    gap: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-    opacity: 0.8,
-  },
-  rankingItem: {
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 16,
     padding: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    borderRadius: 20,
+    borderWidth: 1,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    height: 380,
   },
-  positionSection: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
-  positionBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  positionText: {
+  headerContent: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  subtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  badge: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+    minWidth: 50,
+  },
+  badgeText: {
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: -0.3,
   },
-  userSection: {
+  badgeLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  list: {
+    flex: 1,
+    maxHeight: 240,
+  },
+  listContent: {
+    gap: 8,
+    paddingBottom: 8,
+  },
+  item: {
+    borderRadius: 12,
+  },
+  itemContainer: {
+    borderRadius: 12,
+  },
+  itemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 12,
+    borderWidth: 1,
   },
-  avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  rankSection: {
+    alignItems: 'center',
+    marginRight: 12,
+    minWidth: 32,
+  },
+  rankIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 4,
+  },
+  rankText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  userSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    letterSpacing: -0.2,
-    marginBottom: 6,
+    letterSpacing: -0.1,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    marginTop: 3,
   },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  statText: {
-    fontSize: 12,
+  userStats: {
+    fontSize: 10,
     fontWeight: '500',
   },
-  progressSection: {
-    marginTop: 4,
+  progress: {
+    alignItems: 'flex-end',
+    minWidth: 50,
   },
   progressBar: {
-    height: 6,
-    borderRadius: 3,
+    width: 48,
+    height: 3,
+    borderRadius: 1.5,
     overflow: 'hidden',
+    marginBottom: 4,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 1.5,
   },
-  motivationalFooter: {
-    flexDirection: 'row',
+  progressText: {
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  empty: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    gap: 8,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  motivationalText: {
-    fontSize: 12,
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    marginTop: 12,
+  },
+  footerText: {
+    fontSize: 10,
     fontWeight: '500',
-    opacity: 0.8,
+    textAlign: 'center',
   },
 });

@@ -463,7 +463,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
           ) : (
             <Text style={[
               styles.noExpenseText,
-              { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
+              { color: isDark ? 'rgba(242, 242, 242, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
             ]}>
               Nenhuma despesa registrada este mês.
             </Text>
@@ -567,22 +567,22 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
 
 const styles = StyleSheet.create({
   balanceCard: {
-    marginHorizontal: 20,
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 24,
-    marginTop: 24,
+    marginHorizontal: 12,
+    padding: 16,
+    borderRadius: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
+    height: '100%', // Ocupar toda a altura do contêiner pai
+    flex: 1,
   },
   balanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   balanceHeaderContent: {
     flexDirection: 'row',
@@ -590,86 +590,87 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 10,
-    borderRadius: 12,
-    marginRight: 12,
+    padding: 8,
+    borderRadius: 10,
+    marginRight: 8,
   },
   balanceLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   balanceAction: {
-    padding: 8,
-    borderRadius: 8,
+    padding: 6,
+    borderRadius: 6,
   },
   balanceAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 12,
   },
   balanceProgress: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   progressText: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
   },
   balanceDetails: {
     borderTopWidth: 1,
-    paddingTop: 16,
+    paddingTop: 12,
+    flex: 1, // Ocupar o espaço restante
   },
   expenseRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   expenseLabel: {
-    fontSize: 14,
+    fontSize: 13,
   },
   expenseAmount: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
   },
   lastExpenseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   expenseIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
   },
   lastExpenseText: {
-    fontSize: 13,
+    fontSize: 12,
     flex: 1,
   },
   noExpenseText: {
-    fontSize: 13,
+    fontSize: 12,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   loadingContainer: {
-    marginHorizontal: 20,
-    padding: 24,
-    marginTop: 24,
+    marginHorizontal: 12,
+    padding: 16,
     alignItems: 'center',
+    height: '100%',
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -682,8 +683,8 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '85%',
     maxWidth: 400,
-    padding: 20,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 12,
     elevation: 5,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
@@ -691,43 +692,43 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 14,
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 8,
+    fontSize: 13,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 16,
-    gap: 12,
+    marginTop: 12,
+    gap: 8,
   },
   addButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
   },
   submitIndicator: {
-    marginTop: 12,
+    marginTop: 8,
   },
 });

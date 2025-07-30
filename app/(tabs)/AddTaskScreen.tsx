@@ -5,19 +5,14 @@ import TaskForm from '../../components/TaskForm';
 import Colors from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFamilyMembers } from '../../contexts/FamilyMembersContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
 
 type TabType = 'nova' | 'rapida' | 'template';
 
 export default function AddTaskScreen() {
-  const { isDark } = useTheme();
   const { user } = useAuth();
   const { familyMembers } = useFamilyMembers();
   const [activeTab, setActiveTab] = useState<TabType>('nova');
-
-  // Usa as cores do arquivo Colors.ts
-  const colors = isDark ? Colors.dark : Colors.light;
 
   const tabs = [
     { id: 'nova' as TabType, title: 'Nova Tarefa', icon: 'plus' },
@@ -32,7 +27,6 @@ export default function AddTaskScreen() {
       return;
     }
 
-    // Find the family member by ID and get their name
     const assignee = familyMembers.find(m => m.id === assigneeId);
     if (!assignee) {
       Alert.alert('Erro', 'Membro da família não encontrado.');
@@ -44,7 +38,7 @@ export default function AddTaskScreen() {
         .from('tasks')
         .insert([{
           title,
-          assignee: assignee.name, // Use name instead of ID
+          assignee: assignee.name,
           points,
           user_id: user.id,
           done: false,
@@ -74,19 +68,17 @@ export default function AddTaskScreen() {
       case 'rapida':
         return (
           <View style={styles.tabContent}>
-            <Text style={[styles.contentText, { color: colors.text }]}>
+            <Text style={[styles.contentText, { color: Colors.light.text }]}>
               Criação rápida de tarefas com configurações padrão
             </Text>
-            {/* Aqui você pode adicionar um formulário simplificado */}
           </View>
         );
       case 'template':
         return (
           <View style={styles.tabContent}>
-            <Text style={[styles.contentText, { color: colors.text }]}>
+            <Text style={[styles.contentText, { color: Colors.light.text }]}>
               Selecione um template de tarefa predefinido
             </Text>
-            {/* Aqui você pode adicionar uma lista de templates */}
           </View>
         );
       default:
@@ -95,42 +87,32 @@ export default function AddTaskScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header com título */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Adicionar Tarefa</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.tabIconDefault }]}>
+    <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
+      <View style={[styles.header, { backgroundColor: Colors.light.background }]}>
+        <Text style={[styles.headerTitle, { color: Colors.light.text }]}>Adicionar Tarefa</Text>
+        <Text style={[styles.headerSubtitle, { color: Colors.light.tabIconDefault }]}>
           Organize suas tarefas domésticas
         </Text>
       </View>
 
-      {/* Tabs */}
-      <View style={[styles.tabsContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.tabsContainer, { backgroundColor: Colors.light.background }]}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
-            style={[
-              styles.tab,
-              {
-                backgroundColor: activeTab === tab.id ? colors.tint : 'transparent',
-              }
-            ]}
+            style={[styles.tab, { backgroundColor: activeTab === tab.id ? Colors.light.tint : 'transparent' }]}
             onPress={() => setActiveTab(tab.id)}
             activeOpacity={0.8}
           >
             <MaterialCommunityIcons
               name={tab.icon as any}
               size={20}
-              color={activeTab === tab.id ? colors.background : colors.tabIconDefault}
+              color={activeTab === tab.id ? Colors.light.background : Colors.light.tabIconDefault}
             />
             <Text
-              style={[
-                styles.tabText,
-                {
-                  color: activeTab === tab.id ? colors.background : colors.tabIconDefault,
-                  fontWeight: activeTab === tab.id ? '600' : '500',
-                }
-              ]}
+              style={[styles.tabText, {
+                color: activeTab === tab.id ? Colors.light.background : Colors.light.tabIconDefault,
+                fontWeight: activeTab === tab.id ? '600' : '500',
+              }]}
             >
               {tab.title}
             </Text>
@@ -138,7 +120,6 @@ export default function AddTaskScreen() {
         ))}
       </View>
 
-      {/* Conteúdo das tabs */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderTabContent()}
       </ScrollView>

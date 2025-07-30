@@ -1,9 +1,10 @@
+import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HeaderProps {
   user: {
@@ -13,136 +14,39 @@ interface HeaderProps {
     };
     email?: string;
   } | null;
-  isDark: boolean;
-  onToggleTheme?: () => void;
 }
 
-export default function Header({ user, isDark, onToggleTheme }: HeaderProps) {
+export default function Header({ user }: HeaderProps) {
   const { signOut } = useAuth();
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Animações
-  const pulseAnim = new Animated.Value(1);
-  const slideAnim = new Animated.Value(0);
-  const rotateAnim = new Animated.Value(0);
-  const floatAnim1 = new Animated.Value(0);
-  const floatAnim2 = new Animated.Value(0);
-  const floatAnim3 = new Animated.Value(0);
-  const fadeAnim = new Animated.Value(0);
+  // Animações minimalistas - usando useMemo para evitar recriação
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
+  const slideAnim = useMemo(() => new Animated.Value(0), []);
 
-  const themeColors = isDark
-    ? {
-        gradient: ['#6B7280', '#374151'] as const, // Cinza suave para escuro
-        text: '#F9FAFB',
-        accent: 'rgba(249, 250, 251, 0.15)',
-        cardBg: 'rgba(249, 250, 251, 0.08)',
-        border: 'rgba(249, 250, 251, 0.2)'
-      }
-    : {
-        gradient: ['#8B7355', '#6B5B73'] as const, // Tons terrosos e aconchegantes
-        text: '#FFFFFF',
-        accent: 'rgba(255, 255, 255, 0.15)',
-        cardBg: 'rgba(255, 255, 255, 0.12)',
-        border: 'rgba(255, 255, 255, 0.2)'
-      };
+  const colors = Colors.light;
 
-  // Animação de entrada
-  useEffect(() => {
+  // Animação de entrada suave - usando useCallback para evitar recriação
+  const startAnimations = useCallback(() => {
     Animated.parallel([
-      Animated.timing(slideAnim, {
+      Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
         useNativeDriver: true,
       }),
-      Animated.timing(rotateAnim, {
+      Animated.timing(slideAnim, {
         toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1200,
+        duration: 600,
         useNativeDriver: true,
       })
     ]).start();
+  }, [fadeAnim, slideAnim]);
 
-    // Animação de pulso contínua para o ícone do tempo
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Animações flutuantes para decorações
-    const floatingAnimation1 = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim1, {
-          toValue: 1,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim1, {
-          toValue: 0,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const floatingAnimation2 = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim2, {
-          toValue: 1,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim2, {
-          toValue: 0,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const floatingAnimation3 = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim3, {
-          toValue: 1,
-          duration: 2500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim3, {
-          toValue: 0,
-          duration: 2500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    pulseAnimation.start();
-    floatingAnimation1.start();
-    // Delay para criar movimento assíncrono
-    setTimeout(() => floatingAnimation2.start(), 1000);
-    setTimeout(() => floatingAnimation3.start(), 500);
-
-    return () => {
-      pulseAnimation.stop();
-      floatingAnimation1.stop();
-      floatingAnimation2.stop();
-      floatingAnimation3.stop();
-    };
-  }, []);
+  useEffect(() => {
+    startAnimations();
+  }, [startAnimations]);
 
   // Atualizar horário a cada minuto
   useEffect(() => {
@@ -153,7 +57,7 @@ export default function Header({ user, isDark, onToggleTheme }: HeaderProps) {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     Alert.alert(
       'Sair da conta',
       'Tem certeza que deseja sair?',
@@ -162,6 +66,8 @@ export default function Header({ user, isDark, onToggleTheme }: HeaderProps) {
         {
           text: 'Sair',
           onPress: async () => {
+            if (isLoggingOut) return; // Evitar múltiplos cliques
+
             setIsLoggingOut(true);
             try {
               await signOut();
@@ -176,19 +82,13 @@ export default function Header({ user, isDark, onToggleTheme }: HeaderProps) {
         },
       ]
     );
-  };
+  }, [signOut, isLoggingOut]);
 
-  const handleToggleTheme = () => {
-    if (onToggleTheme) {
-      onToggleTheme();
-    }
-  };
-
-  const handleOpenSettings = () => {
+  const handleOpenSettings = useCallback(() => {
     router.push('/_settings');
-  };
+  }, [router]);
 
-  const getTimeOfDay = () => {
+  const getTimeOfDay = useCallback(() => {
     const hour = currentTime.getHours();
 
     if (hour >= 5 && hour < 12) {
@@ -196,512 +96,327 @@ export default function Header({ user, isDark, onToggleTheme }: HeaderProps) {
         greeting: 'Bom dia',
         icon: 'weather-sunny' as const,
         period: 'manhã',
-        bgIcon: '☀️',
-        familyIcon: 'account-multiple' as const,
-        message: 'Que seu dia seja produtivo!'
       };
     } else if (hour >= 12 && hour < 18) {
       return {
         greeting: 'Boa tarde',
         icon: 'weather-partly-cloudy' as const,
         period: 'tarde',
-        bgIcon: '🌤️',
-        familyIcon: 'account-group' as const,
-        message: 'Continue com energia!'
       };
     } else {
       return {
         greeting: 'Boa noite',
         icon: 'weather-night' as const,
         period: 'noite',
-        bgIcon: '🌙',
-        familyIcon: 'account-heart' as const,
-        message: 'Descanse bem!'
       };
     }
-  };
+  }, [currentTime]);
 
-  const getFamilyName = (): string => {
+  const getFamilyName = useCallback((): string => {
     const userName = user?.user_metadata?.full_name || 'Casa';
     return `${userName}`;
-  };
+  }, [user?.user_metadata?.full_name]);
 
-  const getCurrentTime = (): string => {
+  const getCurrentTime = useCallback((): string => {
     return currentTime.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, [currentTime]);
 
-  const timeInfo = getTimeOfDay();
+  const timeInfo = useMemo(() => getTimeOfDay(), [getTimeOfDay]);
 
-  const slideInterpolate = slideAnim.interpolate({
+  const slideInterpolate = useMemo(() => slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-50, 0],
-  });
+    outputRange: [-30, 0],
+  }), [slideAnim]);
 
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  // Interpolações para animações flutuantes
-  const float1Y = floatAnim1.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -10],
-  });
-
-  const float1Rotate = floatAnim1.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '15deg'],
-  });
-
-  const float2Y = floatAnim2.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -15],
-  });
-
-  const float2Scale = floatAnim2.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.1],
-  });
-
-  const float3Y = floatAnim3.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -8],
-  });
-
-  const float3Rotate = floatAnim3.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  // Calcular altura do status bar baseado na plataforma e safe area
+  const statusBarHeight = useMemo(() => {
+    if (Platform.OS === 'ios') {
+      return insets.top || 44;
+    }
+    return StatusBar.currentHeight || 24;
+  }, [insets.top]);
 
   return (
-    <LinearGradient
-      colors={themeColors.gradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-      accessible
-      accessibilityLabel="Cabeçalho da aplicação Casa em Dia"
-    >
-      <View style={styles.statusBarSpacer} />
-
-      {/* Decorative Background Elements */}
-      <Animated.View style={[styles.decorativeElements, { opacity: fadeAnim }]}>
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            {
-              top: 25,
-              right: 70,
-              transform: [
-                { translateY: float1Y },
-                { rotate: float1Rotate }
-              ]
-            }
-          ]}
-        >
-          <View style={[styles.decorativeIconContainer, { backgroundColor: themeColors.cardBg }]}>
-            <MaterialCommunityIcons name="heart" size={20} color={themeColors.text} />
-          </View>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            {
-              top: 70,
-              right: 30,
-              transform: [
-                { translateY: float2Y },
-                { scale: float2Scale }
-              ]
-            }
-          ]}
-        >
-          <View style={[styles.decorativeIconContainer, styles.largeIcon, { backgroundColor: themeColors.cardBg }]}>
-            <MaterialCommunityIcons name="home-heart" size={24} color={themeColors.text} />
-          </View>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            {
-              top: 45,
-              left: 50,
-              transform: [
-                { translateY: float3Y },
-                { rotate: float3Rotate }
-              ]
-            }
-          ]}
-        >
-          <View style={[styles.decorativeIconContainer, styles.smallIcon, { backgroundColor: themeColors.cardBg }]}>
-            <MaterialCommunityIcons name="star" size={14} color={themeColors.text} />
-          </View>
-        </Animated.View>
-
-        {/* Elementos adicionais */}
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            {
-              top: 30,
-              left: 100,
-              transform: [{ translateY: float1Y }]
-            }
-          ]}
-        >
-          <View style={[styles.decorativeIconContainer, styles.smallIcon, { backgroundColor: themeColors.cardBg }]}>
-            <MaterialCommunityIcons name="account-group" size={12} color={themeColors.text} />
-          </View>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.floatingIcon,
-            {
-              top: 85,
-              left: 20,
-              transform: [
-                { translateY: float2Y },
-                { rotate: float1Rotate }
-              ]
-            }
-          ]}
-        >
-          <View style={[styles.decorativeIconContainer, { backgroundColor: themeColors.cardBg }]}>
-            <MaterialCommunityIcons name="calendar-heart" size={18} color={themeColors.text} />
-          </View>
-        </Animated.View>
-      </Animated.View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.statusBarSpacer, { height: statusBarHeight }]} />
 
       {/* Header */}
       <Animated.View
         style={[
           styles.header,
           {
-            transform: [{ translateX: slideInterpolate }]
+            opacity: fadeAnim,
+            transform: [{ translateY: slideInterpolate }]
           }
         ]}
       >
         <View style={styles.brandSection}>
-          <Animated.View
-            style={{
-              transform: [{ rotate: rotateInterpolate }]
-            }}
-          >
-            <View style={[styles.logoContainer, {
-              backgroundColor: themeColors.cardBg,
-              borderColor: themeColors.border
-            }]}>
-              <MaterialCommunityIcons
-                name="home-variant"
-                size={26}
-                color={themeColors.text}
-              />
-            </View>
-          </Animated.View>
+          <View style={[styles.logoContainer, { backgroundColor: colors.primary }]}>
+            <MaterialCommunityIcons
+              name="home-variant"
+              size={24}
+              color="white"
+            />
+          </View>
           <View style={styles.appTitleContainer}>
-            <Text style={[styles.appName, { color: themeColors.text }]}>
+            <Text style={[styles.appName, { color: colors.text }]}>
               Casa em Dia
             </Text>
-            <Text style={[styles.appSubtitle, { color: themeColors.text }]}>
+            <Text style={[styles.appSubtitle, { color: colors.mutedText }]}>
               Organização Familiar
             </Text>
           </View>
         </View>
 
         <View style={styles.actions}>
-          {/* Theme Toggle Button */}
-          {onToggleTheme && (
-            <TouchableOpacity
-              style={[styles.actionButton, {
-                backgroundColor: themeColors.cardBg,
-                borderColor: themeColors.border
-              }]}
-              onPress={handleToggleTheme}
-              accessibilityLabel={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-            >
-              <MaterialCommunityIcons
-                name={isDark ? "white-balance-sunny" : "moon-waning-crescent"}
-                size={18}
-                color={themeColors.text}
-              />
-            </TouchableOpacity>
-          )}
-
           <TouchableOpacity
-            style={[styles.actionButton, {
-              backgroundColor: themeColors.cardBg,
-              borderColor: themeColors.border
-            }]}
+            style={styles.actionButton}
             onPress={handleLogout}
             disabled={isLoggingOut}
             accessibilityLabel="Sair da conta"
           >
             {isLoggingOut ? (
-              <ActivityIndicator size="small" color={themeColors.text} />
+              <ActivityIndicator size="small" color={colors.mutedText} />
             ) : (
               <MaterialCommunityIcons
                 name="logout-variant"
-                size={18}
-                color={themeColors.text}
+                size={20}
+                color={colors.mutedText}
               />
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, {
-              backgroundColor: themeColors.cardBg,
-              borderColor: themeColors.border
-            }]}
+            style={styles.actionButton}
             onPress={handleOpenSettings}
             accessibilityLabel="Configurações"
           >
             <MaterialCommunityIcons
               name="cog"
-              size={18}
-              color={themeColors.text}
+              size={20}
+              color={colors.mutedText}
             />
           </TouchableOpacity>
         </View>
       </Animated.View>
 
-      {/* Family Greeting Card */}
-      <View style={[styles.greetingCard, {
-        backgroundColor: themeColors.cardBg,
-        borderColor: themeColors.border
-      }]}>
-        <View style={styles.greetingHeader}>
-          <Animated.View
-            style={[
-              styles.timeIconContainer,
-              {
-                transform: [{ scale: pulseAnim }]
-              }
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={timeInfo.icon}
-              size={28}
-              color={themeColors.text}
-            />
-          </Animated.View>
-
-          <View style={styles.greetingTextContainer}>
-            <Text style={[styles.greeting, { color: themeColors.text }]}>
-              {timeInfo.greeting}!
-            </Text>
-            <View style={styles.familyInfo}>
+      {/* Greeting Card */}
+      <Animated.View
+        style={[
+          styles.greetingCard,
+          {
+            backgroundColor: colors.cardBackground,
+            opacity: fadeAnim,
+          }
+        ]}
+      >
+        <View style={styles.greetingContent}>
+          <View style={styles.greetingLeft}>
+            <View style={[styles.timeIcon, { backgroundColor: colors.primary + '15' }]}>
               <MaterialCommunityIcons
-                name={timeInfo.familyIcon}
-                size={16}
-                color={themeColors.text}
-                style={{ opacity: 0.8 }}
+                name={timeInfo.icon}
+                size={24}
+                color={colors.primary}
               />
-              <Text style={[styles.familyName, { color: themeColors.text }]}>
-                {getFamilyName()}
+            </View>
+            <View style={styles.greetingText}>
+              <Text style={[styles.greeting, { color: colors.text }]}>
+                {timeInfo.greeting}, {getFamilyName()}
+              </Text>
+              <Text style={[styles.period, { color: colors.mutedText }]}>
+                {timeInfo.period}
               </Text>
             </View>
           </View>
 
-          <View style={styles.timeContainer}>
-            <Text style={[styles.currentTime, { color: themeColors.text }]}>
+          <View style={styles.timeDisplay}>
+            <Text style={[styles.currentTime, { color: colors.text }]}>
               {getCurrentTime()}
-            </Text>
-            <Text style={[styles.period, { color: themeColors.text }]}>
-              {timeInfo.period}
             </Text>
           </View>
         </View>
 
-        {/* Family Stats Row */}
-        <View style={styles.statsRow}>
+        {/* Simple Stats */}
+        <View style={[styles.statsContainer, { borderTopColor: colors.border }]}>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="calendar-check" size={16} color={themeColors.text} />
-            <Text style={[styles.statText, { color: themeColors.text }]}>Tarefas</Text>
+            <MaterialCommunityIcons
+              name="calendar-check"
+              size={16}
+              color={colors.primary}
+            />
+            <Text style={[styles.statText, { color: colors.mutedText }]}>Tarefas</Text>
           </View>
+
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="account-group" size={16} color={themeColors.text} />
-            <Text style={[styles.statText, { color: themeColors.text }]}>Família</Text>
+            <MaterialCommunityIcons
+              name="account-group"
+              size={16}
+              color={colors.primary}
+            />
+            <Text style={[styles.statText, { color: colors.mutedText }]}>Família</Text>
           </View>
+
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="home-heart" size={16} color={themeColors.text} />
-            <Text style={[styles.statText, { color: themeColors.text }]}>Casa</Text>
+            <MaterialCommunityIcons
+              name="home-heart"
+              size={16}
+              color={colors.primary}
+            />
+            <Text style={[styles.statText, { color: colors.mutedText }]}>Casa</Text>
           </View>
         </View>
-      </View>
-    </LinearGradient>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    position: 'relative',
+    paddingBottom: 20,
   },
   statusBarSpacer: {
-    height: 44,
-  },
-  decorativeElements: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
-  },
-  floatingIcon: {
-    position: 'absolute',
-  },
-  decorativeIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    opacity: 0.7,
-  },
-  largeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  smallIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    // Altura dinâmica será aplicada via prop
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 16,
-    marginBottom: 20,
-    zIndex: 1,
+    marginBottom: 24,
+    minHeight: 44, // Garante altura mínima para toque
   },
   brandSection: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0, // Permite que o texto seja truncado se necessário
   },
   logoContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    flexShrink: 0, // Não permite que o logo seja comprimido
   },
   appTitleContainer: {
     flex: 1,
+    minWidth: 0, // Permite truncar o texto se necessário
   },
   appName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
     marginBottom: 2,
   },
   appSubtitle: {
     fontSize: 12,
     fontWeight: '400',
-    opacity: 0.8,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 16,
+    flexShrink: 0, // Não permite que os botões sejam comprimidos
   },
   actionButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 18,
+    // Adiciona área de toque maior para melhor UX
+    ...(Platform.OS === 'ios' && {
+      hitSlop: { top: 10, bottom: 10, left: 10, right: 10 },
+    }),
   },
   greetingCard: {
     borderRadius: 16,
     padding: 20,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    zIndex: 1,
+    shadowColor: Platform.OS === 'ios' ? '#000' : '#A259FF', // Sombra diferente por plataforma
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: Platform.OS === 'ios' ? 0.08 : 0.15,
+    shadowRadius: 8,
+    elevation: Platform.OS === 'android' ? 3 : 0, // Elevation apenas no Android
   },
-  greetingHeader: {
+  greetingContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    minHeight: 48, // Garante altura mínima
   },
-  timeIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  greetingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+  },
+  timeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 12,
+    flexShrink: 0,
   },
-  greetingTextContainer: {
+  greetingText: {
     flex: 1,
+    minWidth: 0,
   },
   greeting: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  familyInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  familyName: {
-    fontSize: 14,
-    fontWeight: '500',
-    opacity: 0.9,
-  },
-  timeContainer: {
-    alignItems: 'flex-end',
-  },
-  currentTime: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
+    marginBottom: 2,
   },
   period: {
     fontSize: 12,
     fontWeight: '400',
-    opacity: 0.8,
-    marginTop: 2,
   },
-  statsRow: {
+  timeDisplay: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+  },
+  currentTime: {
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: -0.2,
+  },
+  statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopWidth: StyleSheet.hairlineWidth, // Usa hairline width para bordas mais finas
+    minHeight: 40,
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 24, // Garante área de toque adequada
+  },
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 16,
+    marginHorizontal: 8,
   },
   statText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
-    opacity: 0.8,
   },
 });

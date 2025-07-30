@@ -1,12 +1,21 @@
-import { useTheme } from '@/contexts/ThemeContext';
+// src/app/(tabs)/shoppinglist.tsx
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Colors from '../../constants/Colors';
 import { supabase } from '../../lib/supabase';
 
 interface ShoppingItem {
@@ -16,58 +25,26 @@ interface ShoppingItem {
 }
 
 export default function ShoppingList() {
-  const { isDark } = useTheme();
-
-  const themeColors = isDark
-    ? {
-        gradient: ['#000', '#000'] as const,
-        text: '#E8ECEF',
-        accent: '#151515',
-        highlight: '#6B7280',
-        secondary: '#7f7f7f',
-        btn: 'black'
-      }
-    : {
-        gradient: ['#fffffff8', '#fffffff8'] as const,
-        text: '#1C2526',
-        accent: '#F1F5F9',
-        highlight: '#8B7355',
-        secondary: '#374f32',
-        btn: 'white'
-      };
-
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterName, setFilterName] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [calculatorVisible, setCalculatorVisible] = useState(false);
-  const [calcDisplay, setCalcDisplay] = useState('0');
 
-  // Função para buscar itens
   const fetchItems = useCallback(async () => {
-    console.log('Iniciando fetchItems...');
     setLoading(true);
     setError(null);
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) {
-        console.error('Erro de autenticação:', userError?.message);
-        throw new Error('Usuário não autenticado. Faça login novamente.');
-      }
-      const userId = userData.user.id;
-      console.log('Usuário autenticado:', userId);
+      if (userError || !userData.user) throw new Error('Usuário não autenticado.');
 
+      const userId = userData.user.id;
       const { data, error } = await supabase
         .from('shopping_list')
         .select('id, title, done')
         .eq('user_id', userId);
-      if (error) {
-        console.error('Erro na consulta Supabase:', error.message);
-        throw error;
-      }
-      console.log('Dados recebidos do Supabase:', data);
+      if (error) throw error;
 
       const mappedItems: ShoppingItem[] = data.map((item) => ({
         id: item.id,
@@ -75,101 +52,62 @@ export default function ShoppingList() {
         done: item.done,
       }));
       setItems(mappedItems);
-      try {
-        await AsyncStorage.setItem('@shopping_list', JSON.stringify(mappedItems));
-        console.log('Cache atualizado com sucesso');
-      } catch (cacheErr) {
-        console.error('Erro ao salvar no cache:', cacheErr);
-      }
+      await AsyncStorage.setItem('@shopping_list', JSON.stringify(mappedItems));
     } catch (err: any) {
-      console.error('Erro geral em fetchItems:', err);
-      setError(err.message || 'Falha ao carregar a lista. Usando cache local.');
-      try {
-        const cached = await AsyncStorage.getItem('@shopping_list');
-        if (cached) {
-          const cachedItems = JSON.parse(cached);
-          setItems(cachedItems);
-          console.log('Itens carregados do cache:', cachedItems);
-        } else {
-          console.log('Nenhum dado no cache');
-        }
-      } catch (cacheErr) {
-        console.error('Erro ao carregar do cache:', cacheErr);
-      }
+      setError(err.message || 'Erro ao carregar. Usando cache.');
+      const cached = await AsyncStorage.getItem('@shopping_list');
+      if (cached) setItems(JSON.parse(cached));
       if (err.message.includes('não autenticado')) {
-        Alert.alert(
-          'Erro de Autenticação',
-          'Você precisa fazer login para acessar a lista.',
-          [{ text: 'Fazer Login', onPress: () => router.push('/login') }]
-        );
+        Alert.alert('Autenticação', 'Faça login para acessar.', [
+          { text: 'Login', onPress: () => router.push('/login') },
+        ]);
       }
     } finally {
       setLoading(false);
-      console.log('fetchItems concluído');
     }
   }, []);
 
-  // Configurar real-time
   useEffect(() => {
-    console.log('Configurando subscrição em tempo real...');
     fetchItems();
-
     const subscription = supabase
       .channel('shopping_list_channel')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'shopping_list' },
-        (payload) => {
-          console.log('Evento de mudança detectado:', payload);
-          fetchItems();
-        }
+        () => fetchItems()
       )
-      .subscribe((status) => {
-        console.log('Status da subscrição:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('Removendo subscrição em tempo real');
       supabase.removeChannel(subscription);
     };
   }, [fetchItems]);
 
   const handleAddItem = async () => {
     if (!newItemName.trim()) {
-      Alert.alert('Erro', 'Preencha o nome do item.');
+      Alert.alert('Erro', 'Digite um nome para o item.');
       return;
     }
     setLoading(true);
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) {
-        console.error('Erro de autenticação ao adicionar:', userError?.message);
-        throw new Error('Usuário não autenticado. Faça login novamente.');
-      }
+      if (userError || !userData.user) throw new Error('Usuário não autenticado.');
 
       const newItem = {
         title: newItemName.trim(),
         user_id: userData.user.id,
         done: false,
       };
-
       const { error } = await supabase.from('shopping_list').insert(newItem);
-      if (error) {
-        console.error('Erro ao inserir item:', error.message);
-        throw error;
-      }
-      console.log('Item adicionado com sucesso:', newItem);
+      if (error) throw error;
       setNewItemName('');
       await fetchItems();
     } catch (err: any) {
-      console.error('Erro ao adicionar item:', err);
-      setError(err.message || 'Falha ao adicionar item. Tente novamente.');
+      setError(err.message);
       if (err.message.includes('não autenticado')) {
-        Alert.alert(
-          'Erro de Autenticação',
-          'Você precisa fazer login para adicionar itens.',
-          [{ text: 'Fazer Login', onPress: () => router.push('/login') }]
-        );
+        Alert.alert('Autenticação', 'Faça login para adicionar itens.', [
+          { text: 'Login', onPress: () => router.push('/login') },
+        ]);
       }
     } finally {
       setLoading(false);
@@ -179,512 +117,592 @@ export default function ShoppingList() {
   const handleToggleItem = async (id: number) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
-
     setLoading(true);
     try {
       const { error } = await supabase
         .from('shopping_list')
         .update({ done: !item.done })
         .eq('id', id);
-      if (error) {
-        console.error('Erro ao atualizar item:', error.message);
-        throw error;
-      }
-      console.log('Item atualizado:', { id, done: !item.done });
+      if (error) throw error;
       await fetchItems();
     } catch (err: any) {
-      console.error('Erro ao atualizar item:', err);
-      setError(err.message || 'Falha ao atualizar item. Tente novamente.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteItem = async (id: number) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('shopping_list').delete().eq('id', id);
-      if (error) {
-        console.error('Erro ao excluir item:', error.message);
-        throw error;
-      }
-      console.log('Item excluído:', id);
-      await fetchItems();
-    } catch (err: any) {
-      console.error('Erro ao excluir item:', err);
-      setError(err.message || 'Falha ao excluir item. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClearCompleted = async () => {
     Alert.alert(
-      'Limpar Concluídos',
-      'Deseja remover todos os itens concluídos?',
+      'Remover Item',
+      'Tem certeza que deseja remover este item?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Limpar',
+          text: 'Remover',
+          style: 'destructive',
           onPress: async () => {
             setLoading(true);
             try {
-              const { error } = await supabase
-                .from('shopping_list')
-                .delete()
-                .eq('done', true);
-              if (error) {
-                console.error('Erro ao limpar itens concluídos:', error.message);
-                throw error;
-              }
-              console.log('Itens concluídos limpos');
+              const { error } = await supabase.from('shopping_list').delete().eq('id', id);
+              if (error) throw error;
               await fetchItems();
             } catch (err: any) {
-              console.error('Erro ao limpar itens concluídos:', err);
-              setError(err.message || 'Falha ao limpar itens concluídos. Tente novamente.');
+              setError(err.message);
             } finally {
               setLoading(false);
             }
-          },
-          style: 'destructive',
-        },
+          }
+        }
       ]
     );
   };
 
+  const handleClearCompleted = () => {
+    Alert.alert('Limpar Concluídos', 'Remover todos os itens concluídos?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Limpar',
+        onPress: async () => {
+          setLoading(true);
+          try {
+            const { data: userData, error: userError } = await supabase.auth.getUser();
+            if (userError || !userData.user) throw new Error('Usuário não autenticado.');
+
+            const { error } = await supabase
+              .from('shopping_list')
+              .delete()
+              .eq('done', true)
+              .eq('user_id', userData.user.id);
+            if (error) throw error;
+            await fetchItems();
+          } catch (err: any) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        },
+        style: 'destructive',
+      },
+    ]);
+  };
+
   const handleSort = () => {
-    const newSortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-    setSortOrder(newSortOrder);
-    setItems((prevItems) =>
-      [...prevItems].sort((a, b) => {
-        const nameA = a.name.toLowerCase();
-        const nameB = b.name.toLowerCase();
-        return newSortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-      })
+    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortOrder(newOrder);
+    setItems((prev) =>
+      [...prev].sort((a, b) =>
+        newOrder === 'asc'
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name)
+      )
     );
   };
 
-  const handleCalculatorPress = (value: string) => {
-    if (value === 'C') {
-      setCalcDisplay('0');
-      return;
-    }
-    if (value === '=') {
-      try {
-        const result = eval(calcDisplay);
-        setCalcDisplay(result.toString());
-      } catch {
-        setCalcDisplay('Erro');
-      }
-      return;
-    }
-    setCalcDisplay((prev) => {
-      if (prev === '0' || prev === 'Erro') {
-        return value;
-      }
-      return prev + value;
-    });
+  const getItemIcon = (itemName: string) => {
+    const name = itemName.toLowerCase();
+    if (name.includes('fruta') || name.includes('banana') || name.includes('maçã') || name.includes('laranja')) return 'fruit-grapes';
+    if (name.includes('verdura') || name.includes('alface') || name.includes('tomate') || name.includes('cebola')) return 'carrot';
+    if (name.includes('carne') || name.includes('frango') || name.includes('peixe')) return 'food-drumstick';
+    if (name.includes('leite') || name.includes('queijo') || name.includes('iogurte')) return 'cow';
+    if (name.includes('pão') || name.includes('biscoito') || name.includes('bolo')) return 'bread-slice';
+    if (name.includes('limpeza') || name.includes('detergente') || name.includes('sabão')) return 'spray-bottle';
+    if (name.includes('remédio') || name.includes('medicamento')) return 'pill';
+    return 'basket';
+  };
+
+  const getStats = () => {
+    const total = items.length;
+    const completed = items.filter(item => item.done).length;
+    const completionPercentage = total > 0 ? (completed / total) * 100 : 0;
+
+    return { total, completed, completionPercentage };
   };
 
   const filteredItems = filterName
     ? items.filter((item) => item.name.toLowerCase().includes(filterName.toLowerCase()))
     : items;
 
+  const stats = getStats();
+
+  // Exibir loading apenas se não há itens carregados
+  if (loading && items.length === 0) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: Colors.light.background }]}>
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color={Colors.light.primary} />
+          <Text style={[styles.loadingText, { color: Colors.light.text }]}>
+            Carregando lista...
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView edges={['top']} style={styles.container}>
-      <LinearGradient colors={themeColors.gradient} style={styles.gradient}>
-        {loading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={themeColors.highlight} />
-          </View>
-        )}
-        {error && (
-          <Animated.View entering={FadeInDown} style={[styles.errorContainer, { backgroundColor: isDark ? '#EF5350' : '#FFEBEE' }]}>
-            <Text style={[styles.errorText, { color: isDark ? '#FFFFFF' : '#D32F2F' }]}>{error}</Text>
-          </Animated.View>
-        )}
-        <View style={styles.header}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <View style={[styles.sectionIcon, { backgroundColor: themeColors.accent }]}>
-                <MaterialCommunityIcons name="cart-outline" color={themeColors.highlight} size={18} />
-              </View>
-              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Lista de Compras</Text>
-            </View>
-            {items.some((item) => item.done) && (
-              <Animated.View entering={FadeIn}>
-                <TouchableOpacity
-                  style={styles.clearButton}
-                  onPress={handleClearCompleted}
-                  accessibilityLabel="Limpar itens concluídos"
-                >
-                  <MaterialCommunityIcons name="delete-sweep-outline" size={22} color={themeColors.secondary} />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: Colors.light.background }}>
+      {loading && items.length > 0 && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingIndicator}>
+            <ActivityIndicator size="small" color={Colors.light.primary} />
           </View>
         </View>
+      )}
 
-        <View style={styles.newItemForm}>
-          <TextInput
-            style={[styles.input, { backgroundColor: themeColors.accent, color: themeColors.text, marginBottom: 14 }]}
-            placeholder="Adicionar item"
-            placeholderTextColor={themeColors.secondary}
-            value={newItemName}
-            onChangeText={setNewItemName}
-            accessibilityLabel="Nome do item"
-          />
-          <View style={styles.filterContainer}>
-            <TextInput
-              style={[styles.input, { flex: 1, backgroundColor: themeColors.accent, color: themeColors.text, marginBottom: 14 }]}
-              placeholder="Filtrar itens"
-              placeholderTextColor={themeColors.secondary}
-              value={filterName}
-              onChangeText={setFilterName}
-              accessibilityLabel="Filtrar por nome do item"
+      {/* Header com fundo roxo */}
+      <View style={[styles.header, { backgroundColor: Colors.light.primary }]}>
+        <StatusBar barStyle={'default'} backgroundColor={Colors.light.tint} />
+        <View style={styles.headerContent}>
+          <View style={[styles.iconContainer, { backgroundColor: Colors.light.textWhite }]}>
+            <MaterialCommunityIcons
+              name="cart"
+              color={Colors.light.primary}
+              size={28}
             />
-            {filterName && (
-              <TouchableOpacity
-                style={styles.clearFilterButton}
-                onPress={() => setFilterName('')}
-                accessibilityLabel="Limpar filtro"
-              >
-                <MaterialCommunityIcons name="close" size={18} color={themeColors.secondary} />
-              </TouchableOpacity>
-            )}
           </View>
-          <View style={styles.sortContainer}>
-            <TouchableOpacity
-              style={[styles.sortButton, { backgroundColor: themeColors.accent }]}
-              onPress={handleSort}
-              accessibilityLabel={`Ordenar por nome ${sortOrder === 'asc' ? 'decrescente' : 'crescente'}`}
-            >
-              <Text style={[styles.sortButtonText, { color: themeColors.text }]}>
-                Nome {sortOrder === 'asc' ? '↑' : '↓'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <Animated.View entering={FadeIn}>
-            <TouchableOpacity
-              style={[styles.addItemButton, { backgroundColor: themeColors.highlight }]}
-              onPress={handleAddItem}
-              activeOpacity={0.8}
-              accessibilityLabel="Adicionar item à lista"
-            >
-              <MaterialCommunityIcons name="plus" color={themeColors.btn} size={18} />
-              <Text style={[styles.addItemText, { color: themeColors.btn }]}>Adicionar</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-
-        <ScrollView
-          style={styles.itemsList}
-          contentContainerStyle={styles.itemsListContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {filteredItems.length === 0 && !loading && (
-            <Text style={[styles.emptyText, { color: themeColors.secondary }]}>
-              Sua lista está vazia.
+          <View style={styles.headerTextContainer}>
+            <Text style={[styles.headerTitle, { color: Colors.light.textWhite }]}>
+              Lista de Compras
             </Text>
-          )}
-          {filteredItems.map((item, index) => (
-            <Animated.View
-              key={item.id}
-              entering={FadeInDown.delay(index * 50)}
-              style={[styles.item, { backgroundColor: themeColors.accent }]}
+            <Text style={[styles.headerSubtitle, { color: Colors.light.textWhite }]}>
+              {stats.total} {stats.total === 1 ? 'item' : 'itens'} • {stats.completed} concluído{stats.completed !== 1 ? 's' : ''}
+            </Text>
+          </View>
+          {items.some((i) => i.done) && (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearCompleted}
             >
-              <TouchableOpacity
-                onPress={() => handleToggleItem(item.id)}
-                style={[styles.checkbox, { borderColor: item.done ? themeColors.highlight : themeColors.text, backgroundColor: item.done ? themeColors.highlight : 'transparent' }]}
-                accessibilityLabel={item.done ? `Desmarcar ${item.name}` : `Marcar ${item.name} como concluído`}
-              >
-                {item.done && (
-                  <MaterialCommunityIcons name="check" color={themeColors.text} size={14} />
-                )}
-              </TouchableOpacity>
-              <Text
-                style={[styles.itemText, { textDecorationLine: item.done ? 'line-through' : 'none', color: item.done ? themeColors.secondary : themeColors.text }]}
-              >
-                {item.name}
-              </Text>
-              <TouchableOpacity
-                onPress={() => handleDeleteItem(item.id)}
-                style={styles.deleteButton}
-                accessibilityLabel={`Excluir ${item.name}`}
-              >
-                <MaterialCommunityIcons name="close" size={18} color={themeColors.secondary} />
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
-        </ScrollView>
+              <MaterialCommunityIcons name="delete-sweep" size={24} color={Colors.light.textWhite} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
-        <TouchableOpacity
-          style={[styles.floatingButton, { backgroundColor: themeColors.highlight }]}
-          onPress={() => setCalculatorVisible(true)}
-          accessibilityLabel="Abrir calculadora"
-        >
-          <MaterialCommunityIcons name="calculator" size={24} color={themeColors.btn} />
-        </TouchableOpacity>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Formulário de Adição */}
+        <View style={[styles.formCard, { backgroundColor: Colors.light.cardBackground }]}>
+          <Text style={[styles.formTitle, { color: Colors.light.text }]}>
+            Adicionar Item
+          </Text>
 
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={calculatorVisible}
-          onRequestClose={() => setCalculatorVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: themeColors.accent }]}>
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Calculadora</Text>
-              <View style={[styles.calcDisplay, { backgroundColor: themeColors.accent, borderColor: themeColors.secondary }]}>
-                <Text style={[styles.calcDisplayText, { color: themeColors.text }]}>{calcDisplay}</Text>
-              </View>
-              <View style={styles.calcButtons}>
-                {['7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', '0', '.', 'C', '+', '='].map((btn) => (
-                  <TouchableOpacity
-                    key={btn}
-                    style={[styles.calcButton, { backgroundColor: btn === '=' ? themeColors.highlight : themeColors.secondary }]}
-                    onPress={() => handleCalculatorPress(btn)}
-                    accessibilityLabel={`Botão ${btn === 'C' ? 'limpar' : btn === '=' ? 'calcular' : btn}`}
-                  >
-                    <Text style={[styles.calcButtonText, { color: themeColors.btn }]}>{btn}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: themeColors.secondary }]}
-                onPress={() => setCalculatorVisible(false)}
-                accessibilityLabel="Fechar calculadora"
-              >
-                <Text style={[styles.modalButtonText, { color: themeColors.btn }]}>Fechar</Text>
-              </TouchableOpacity>
+          <View style={styles.inputContainer}>
+            <View style={[styles.inputWrapper, { backgroundColor: Colors.light.background }]}>
+              <MaterialCommunityIcons
+                name="plus-circle-outline"
+                size={20}
+                color={Colors.light.mutedText}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, { color: Colors.light.text }]}
+                placeholder="Digite o nome do item..."
+                placeholderTextColor={Colors.light.mutedText}
+                value={newItemName}
+                onChangeText={setNewItemName}
+                onSubmitEditing={handleAddItem}
+                returnKeyType="done"
+              />
             </View>
           </View>
-        </Modal>
-      </LinearGradient>
+
+          <View style={styles.formActions}>
+            <TouchableOpacity
+              style={[
+                styles.addButton,
+                {
+                  backgroundColor: Colors.light.primary,
+                  opacity: !newItemName.trim() ? 0.5 : 1
+                }
+              ]}
+              onPress={handleAddItem}
+              disabled={!newItemName.trim()}
+            >
+              <MaterialCommunityIcons name="plus" size={20} color={Colors.light.textWhite} />
+              <Text style={[styles.addButtonText, { color: Colors.light.textWhite }]}>
+                Adicionar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Filtros e Ordenação */}
+        <View style={[styles.filtersCard, { backgroundColor: Colors.light.cardBackground }]}>
+          <View style={styles.filtersRow}>
+            <View style={[styles.filterInputWrapper, { backgroundColor: Colors.light.background }]}>
+              <MaterialCommunityIcons
+                name="magnify"
+                size={18}
+                color={Colors.light.mutedText}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.filterInput, { color: Colors.light.text }]}
+                placeholder="Filtrar itens..."
+                placeholderTextColor={Colors.light.mutedText}
+                value={filterName}
+                onChangeText={setFilterName}
+              />
+              {filterName ? (
+                <TouchableOpacity onPress={() => setFilterName('')}>
+                  <MaterialCommunityIcons name="close" size={18} color={Colors.light.mutedText} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.sortButton, { backgroundColor: Colors.light.background }]}
+              onPress={handleSort}
+            >
+              <MaterialCommunityIcons
+                name={sortOrder === 'asc' ? 'sort-alphabetical-ascending' : 'sort-alphabetical-descending'}
+                size={20}
+                color={Colors.light.primary}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Lista de Itens */}
+        <View style={[styles.listCard, { backgroundColor: Colors.light.cardBackground }]}>
+          <View style={styles.listHeader}>
+            <Text style={[styles.listTitle, { color: Colors.light.text }]}>
+              {filterName ? `Resultados (${filteredItems.length})` : 'Meus Itens'}
+            </Text>
+          </View>
+
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item, index) => (
+              <View
+                key={item.id}
+                style={[
+                  styles.listItem,
+                  { borderBottomColor: Colors.light.borderLight },
+                  index === filteredItems.length - 1 && { borderBottomWidth: 0 }
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: item.done ? Colors.light.success : Colors.light.borderLight,
+                      backgroundColor: item.done ? Colors.light.success : 'transparent',
+                    },
+                  ]}
+                  onPress={() => handleToggleItem(item.id)}
+                >
+                  {item.done && (
+                    <MaterialCommunityIcons
+                      name="check"
+                      color={Colors.light.textWhite}
+                      size={16}
+                    />
+                  )}
+                </TouchableOpacity>
+
+                <View style={[styles.itemIcon, {
+                  backgroundColor: item.done
+                    ? Colors.light.borderLight
+                    : Colors.light.illustrationCyan + '20'
+                }]}>
+                  <MaterialCommunityIcons
+                    name={getItemIcon(item.name)}
+                    size={18}
+                    color={item.done ? Colors.light.mutedText : Colors.light.illustrationCyan}
+                  />
+                </View>
+
+                <View style={styles.itemContent}>
+                  <Text style={[styles.itemText, {
+                    color: item.done ? Colors.light.mutedText : Colors.light.text,
+                    textDecorationLine: item.done ? 'line-through' : 'none',
+                  }]}>
+                    {item.name}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteItem(item.id)}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={20}
+                    color={Colors.light.danger}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIcon, { backgroundColor: Colors.light.borderLight }]}>
+                <MaterialCommunityIcons
+                  name={filterName ? "magnify" : "cart-plus"}
+                  size={48}
+                  color={Colors.light.mutedText}
+                />
+              </View>
+              <Text style={[styles.emptyTitle, { color: Colors.light.text }]}>
+                {filterName ? "Nenhum item encontrado" : "Lista vazia"}
+              </Text>
+              <Text style={[styles.emptyDescription, { color: Colors.light.mutedText }]}>
+                {filterName
+                  ? "Tente usar outros termos de busca"
+                  : "Adicione itens à sua lista de compras"
+                }
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Exibir erro se houver */}
+      {error && (
+        <View style={styles.errorToast}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 12,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
-  errorContainer: {
-    marginHorizontal: 16,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+  loadingCard: {
+    backgroundColor: Colors.light.cardBackground,
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  errorText: {
-    fontSize: 14,
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
     fontWeight: '500',
-    textAlign: 'center',
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 20,
+    zIndex: 1000,
+    marginTop: 100,
   },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionIcon: {
+  loadingIndicator: {
+    backgroundColor: Colors.light.cardBackground,
     padding: 8,
-    borderRadius: 12,
-    marginRight: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+  header: {
+    paddingTop: 20,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    padding: 12,
+    borderRadius: 16,
+    marginRight: 16,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    opacity: 0.9,
   },
   clearButton: {
     padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  newItemForm: {
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  formCard: {
+    marginTop: -20,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  formTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: 'transparent',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-    zIndex: 1,
+  },
+  inputIcon: {
+    marginRight: 12,
   },
   input: {
-    padding: 14,
-    borderRadius: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  clearFilterButton: {
-    padding: 8,
-  },
-  sortContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  sortButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    alignItems: 'center',
+    paddingVertical: 16,
+    fontSize: 16,
   },
-  sortButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+  formActions: {
+    flexDirection: 'row',
   },
-  addItemButton: {
+  addButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 16,
     borderRadius: 12,
-    marginTop: 8,
   },
-  addItemText: {
+  addButtonText: {
+    fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-    fontSize: 16,
   },
-  itemsList: {
-    flex: 1,
-    paddingHorizontal: 16,
+  filtersCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  itemsListContent: {
-    paddingBottom: 80,
-  },
-  item: {
+  filtersRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.03)',
   },
-  itemText: {
+  filterInputWrapper: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginRight: 12,
+  },
+  filterInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 14,
+  },
+  sortButton: {
+    padding: 12,
+    borderRadius: 12,
+  },
+  listCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    marginBottom: 40,
+  },
+  listHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.borderLight,
+  },
+  listTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    letterSpacing: 0.2,
+    fontWeight: '600',
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
   },
   checkbox: {
-    height: 20,
-    width: 20,
+    height: 24,
+    width: 24,
     borderRadius: 6,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
+  },
+  itemIcon: {
+    padding: 8,
+    borderRadius: 8,
+    marginRight: 16,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   deleteButton: {
     padding: 8,
+    borderRadius: 8,
   },
-  emptyText: {
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyIcon: {
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  emptyDescription: {
     fontSize: 14,
-    fontWeight: '400',
     textAlign: 'center',
-    marginTop: 24,
-    letterSpacing: 0.2,
   },
-  floatingButton: {
+  errorToast: {
     position: 'absolute',
     bottom: 20,
+    left: 20,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 100,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    backgroundColor: Colors.light.danger,
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  modalContent: {
-    width: '80%',
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  calcDisplay: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  calcDisplayText: {
-    fontSize: 24,
+  errorText: {
+    color: Colors.light.textWhite,
+    fontSize: 14,
     fontWeight: '500',
-    textAlign: 'right',
-  },
-  calcButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  calcButton: {
-    width: '22%',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calcButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  modalButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

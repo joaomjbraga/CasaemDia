@@ -79,65 +79,78 @@ export default function ForgotPasswordScreen() {
     form: {
       width: '100%',
     },
+    iconContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 40,
+      gap: 20,
+    },
     title: {
       fontSize: 32,
       fontWeight: 'bold',
       textAlign: 'center',
-      marginBottom: 20,
       color: colors.text,
     },
     subtitle: {
       fontSize: 16,
       textAlign: 'center',
       marginBottom: 40,
-      color: colors.tabIconDefault,
-      lineHeight: 22,
+      color: colors.mutedText,
+      lineHeight: 24,
       paddingHorizontal: 10,
     },
     input: {
-      height: 50,
-      borderWidth: 1,
-      borderColor: colorScheme === 'dark' ? '#404040' : '#E0E0E0',
-      borderRadius: 12,
-      paddingHorizontal: 15,
+      height: 55,
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: 16,
+      paddingHorizontal: 20,
       marginBottom: 20,
       fontSize: 16,
-      backgroundColor: colorScheme === 'dark' ? '#2A2A2A' : '#F8F8F8',
+      backgroundColor: colors.cardBackground,
       color: colors.text,
-    },
-    button: {
-      height: 50,
-      backgroundColor: colors.tint,
-      borderRadius: 12,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 20,
-      shadowColor: colors.tint,
+      shadowColor: colors.accentBlue,
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    button: {
+      height: 55,
+      backgroundColor: colors.primary,
+      borderRadius: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 30,
+      shadowColor: colors.primary,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
       flexDirection: 'row',
-      gap: 8,
+      gap: 12,
     },
     buttonDisabled: {
       opacity: 0.6,
     },
     buttonText: {
-      color: colorScheme === 'dark' ? '#000' : '#FFFFFF',
+      color: colors.textWhite,
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: '700',
     },
     links: {
       alignItems: 'center',
     },
     linkText: {
-      color: colors.tint,
+      color: colors.primary,
       fontSize: 16,
-      fontWeight: '500',
+      fontWeight: '600',
     },
     linkDisabled: {
       opacity: 0.5,
@@ -147,8 +160,8 @@ export default function ForgotPasswordScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.form}>
-        <View style={{ alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <FontAwesome name="bug" color={colors.tint} size={100} />
+        <View style={styles.iconContainer}>
+          <FontAwesome name="lock" color={colors.primary} size={120} />
           <Text style={styles.title}>Recuperar Senha</Text>
         </View>
         <Text style={styles.subtitle}>
@@ -158,7 +171,7 @@ export default function ForgotPasswordScreen() {
         <TextInput
           style={styles.input}
           placeholder="E-mail"
-          placeholderTextColor={colors.tabIconDefault}
+          placeholderTextColor={colors.mutedText}
           value={email}
           onChangeText={(text) => setEmail(text.trim())}
           keyboardType="email-address"
@@ -173,7 +186,7 @@ export default function ForgotPasswordScreen() {
           disabled={loading}
           activeOpacity={0.8}
         >
-          {loading && <ActivityIndicator size="small" color={colorScheme === 'dark' ? '#000' : '#FFFFFF'} />}
+          {loading && <ActivityIndicator size="small" color={colors.textWhite} />}
           <Text style={styles.buttonText}>{loading ? 'Enviando...' : 'Enviar Link'}</Text>
         </TouchableOpacity>
 

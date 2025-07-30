@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,14 +13,17 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import Colors from '../constants/Colors';
 import { useAuth } from '../contexts/AuthContext';
 import { useFamilyMembers } from '../contexts/FamilyMembersContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
+
+const { width } = Dimensions.get('window');
+
+
 export default function SettingsScreen() {
-  const router = useRouter();
-  const { isDark, toggleTheme } = useTheme();
-  const { user } = useAuth();
+
   const [monthlyBudget, setMonthlyBudget] = useState<string>('0,00');
   const [newMemberName, setNewMemberName] = useState<string>('');
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
@@ -32,32 +36,9 @@ export default function SettingsScreen() {
     deleteFamilyMember,
     fetchFamilyMembers
   } = useFamilyMembers();
-
-  const themeStyles = isDark
-    ? {
-        background: '#000',
-        cardBackground: '#262626',
-        text: '#E0E0E0',
-        secondaryText: '#A0A0A0',
-        border: '#3A4445',
-        buttonBackground: '#f86565',
-        buttonBorder: '#8c0303',
-        buttonText: '#010101',
-        deleteButton: '#ff4444',
-        warningText: '#ffaa00',
-      }
-    : {
-        background: '#f8f9fa',
-        cardBackground: '#fff',
-        text: '#333',
-        secondaryText: '#666',
-        border: '#e0e0e0',
-        buttonBackground: '#3E8E7E',
-        buttonBorder: '#3E8E7E',
-        buttonText: '#fff',
-        deleteButton: '#dc3545',
-        warningText: '#ff8800',
-      };
+  const router = useRouter();
+  const { user } = useAuth();
+  const colors = Colors.light;
 
   useEffect(() => {
     if (user) {
@@ -305,196 +286,215 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={{flex:1, backgroundColor: themeStyles.background}} >
-    <View style={[styles.container, { backgroundColor: themeStyles.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: themeStyles.buttonBackground }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header simples */}
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
           accessibilityLabel="Voltar para a tela anterior"
         >
-          <MaterialCommunityIcons name="arrow-left" size={24} color={themeStyles.buttonText} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: themeStyles.buttonText }]}>Configurações</Text>
-        <TouchableOpacity
-          style={styles.themeButton}
-          onPress={toggleTheme}
-          accessibilityLabel={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-        >
-          <MaterialCommunityIcons
-            name={isDark ? 'white-balance-sunny' : 'moon-waning-crescent'}
-            size={24}
-            color={themeStyles.buttonText}
-          />
-        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Configurações</Text>
+
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Finance Section */}
-        <View style={[styles.section, { backgroundColor: themeStyles.cardBackground, borderColor: themeStyles.border }]}>
-          <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="wallet" size={24} color={themeStyles.buttonBackground} />
-            <Text style={[styles.sectionTitle, { color: themeStyles.text }]}>Finanças</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: themeStyles.text }]}>Orçamento Mensal</Text>
-            {budgetLoading ? (
-              <View style={[styles.input, styles.loadingInput, { borderColor: themeStyles.border, backgroundColor: themeStyles.cardBackground }]}>
-                <ActivityIndicator size="small" color={themeStyles.buttonBackground} />
-                <Text style={[styles.loadingText, { color: themeStyles.secondaryText }]}>Carregando...</Text>
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.categoryTitle, { color: colors.text }]}>Finanças</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <View style={styles.sectionContent}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.accentBlue + '20' }]}>
+                <MaterialCommunityIcons name="wallet" size={24} color={colors.accentBlue} />
               </View>
-            ) : (
-              <View style={styles.currencyInputContainer}>
-                <Text style={[styles.currencyPrefix, { color: themeStyles.text }]}>R$</Text>
-                <TextInput
-                  style={[styles.currencyInput, { borderColor: themeStyles.border, backgroundColor: themeStyles.cardBackground, color: themeStyles.text }]}
-                  value={monthlyBudget}
-                  onChangeText={(text) => setMonthlyBudget(formatBudgetInput(text))}
-                  keyboardType="decimal-pad"
-                  placeholder="0,00"
-                  placeholderTextColor={themeStyles.secondaryText}
-                  editable={!budgetLoading}
-                />
-              </View>
-            )}
-          </View>
+              <View style={styles.sectionTextContainer}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Orçamento Mensal</Text>
 
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: themeStyles.buttonBackground }, (saveLoading || budgetLoading) && styles.disabledButton]}
-            onPress={updateBalance}
-            disabled={saveLoading || budgetLoading}
-            activeOpacity={0.8}
-          >
-            {saveLoading ? (
-              <ActivityIndicator size="small" color={themeStyles.buttonText} />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="content-save" size={20} color={themeStyles.buttonText} />
-                <Text style={[styles.buttonText, { color: themeStyles.buttonText }]}>Salvar Orçamento</Text>
-              </>
-            )}
-          </TouchableOpacity>
+                <View style={styles.inputGroup}>
+                  {budgetLoading ? (
+                    <View style={[styles.loadingInput, { backgroundColor: colors.progressBackground }]}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={[styles.loadingText, { color: colors.mutedText }]}>Carregando...</Text>
+                    </View>
+                  ) : (
+                    <View style={[styles.currencyInputContainer, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
+                      <Text style={[styles.currencyPrefix, { color: colors.primary }]}>R$</Text>
+                      <TextInput
+                        style={[styles.currencyInput, { color: colors.text }]}
+                        value={monthlyBudget}
+                        onChangeText={(text) => setMonthlyBudget(formatBudgetInput(text))}
+                        keyboardType="decimal-pad"
+                        placeholder="0,00"
+                        placeholderTextColor={colors.mutedText}
+                        editable={!budgetLoading}
+                      />
+                    </View>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.primary },
+                    (saveLoading || budgetLoading) && { opacity: 0.6 }
+                  ]}
+                  onPress={updateBalance}
+                  disabled={saveLoading || budgetLoading}
+                  activeOpacity={0.8}
+                >
+                  {saveLoading ? (
+                    <ActivityIndicator size="small" color={colors.textWhite} />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="content-save" size={18} color={colors.textWhite} />
+                      <Text style={[styles.buttonText, { color: colors.textWhite }]}>Salvar</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
+          </View>
         </View>
 
         {/* Family Members Section */}
-        <View style={[styles.section, { backgroundColor: themeStyles.cardBackground, borderColor: themeStyles.border }]}>
-          <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="account-group" size={24} color={themeStyles.buttonBackground} />
-            <Text style={[styles.sectionTitle, { color: themeStyles.text }]}>Membros da Família</Text>
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={fetchFamilyMembers}
-              disabled={memberLoading}
-            >
-              <MaterialCommunityIcons
-                name="refresh"
-                size={20}
-                color={memberLoading ? themeStyles.secondaryText : themeStyles.buttonBackground}
-              />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.categoryTitle, { color: colors.text }]}>Membros da Família</Text>
 
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: themeStyles.text }]}>Adicionar Membro</Text>
-            <TextInput
-              style={[styles.input, { borderColor: themeStyles.border, backgroundColor: themeStyles.cardBackground, color: themeStyles.text }]}
-              value={newMemberName}
-              onChangeText={setNewMemberName}
-              placeholder="Nome do membro"
-              placeholderTextColor={themeStyles.secondaryText}
-              maxLength={50}
-              editable={!memberLoading}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: themeStyles.buttonBackground }, memberLoading && styles.disabledButton]}
-            onPress={handleAddMember}
-            disabled={memberLoading || !newMemberName.trim()}
-            activeOpacity={0.8}
-          >
-            {memberLoading ? (
-              <ActivityIndicator size="small" color={themeStyles.buttonText} />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="plus" size={20} color={themeStyles.buttonText} />
-                <Text style={[styles.buttonText, { color: themeStyles.buttonText }]}>Adicionar Membro</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.membersList}>
-            {memberLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={themeStyles.buttonBackground} />
-                <Text style={[styles.loadingText, { color: themeStyles.secondaryText }]}>Carregando membros...</Text>
+          {/* Add Member */}
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <View style={styles.sectionContent}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.illustrationPurple + '20' }]}>
+                <MaterialCommunityIcons name="account-plus" size={24} color={colors.illustrationPurple} />
               </View>
-            ) : familyMembers.length === 0 ? (
-              <Text style={[styles.emptyText, { color: themeStyles.secondaryText }]}>
-                Nenhum membro adicionado ainda.{'\n'}Adicione membros para começar a atribuir tarefas!
-              </Text>
-            ) : (
-              <>
-                <Text style={[styles.membersCount, { color: themeStyles.secondaryText }]}>
-                  {familyMembers.length} {familyMembers.length === 1 ? 'membro' : 'membros'}
-                </Text>
-                {familyMembers.map((member) => (
-                  <View key={member.id} style={[styles.memberItem, { borderBottomColor: themeStyles.border }]}>
-                    <View style={styles.memberInfo}>
-                      <MaterialCommunityIcons name="account" size={20} color={themeStyles.buttonBackground} />
-                      <Text style={[styles.memberName, { color: themeStyles.text }]}>{member.name}</Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteMember(member.id, member.name)}
-                      style={[
-                        styles.deleteButton,
-                        { backgroundColor: themeStyles.deleteButton + '20' },
-                        deletingMember === member.id && styles.disabledButton
-                      ]}
-                      disabled={deletingMember === member.id}
-                      accessibilityLabel={`Remover ${member.name}`}
-                    >
-                      {deletingMember === member.id ? (
-                        <ActivityIndicator size={16} color={themeStyles.deleteButton} />
-                      ) : (
-                        <MaterialCommunityIcons name="delete" size={18} color={themeStyles.deleteButton} />
-                      )}
-                    </TouchableOpacity>
+              <View style={styles.sectionTextContainer}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Adicionar Membro</Text>
+                <View style={styles.inputGroup}>
+                  <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.cardBackground }]}>
+                    <TextInput
+                      style={[styles.input, { color: colors.text }]}
+                      value={newMemberName}
+                      onChangeText={setNewMemberName}
+                      placeholder="Nome do membro"
+                      placeholderTextColor={colors.mutedText}
+                      maxLength={50}
+                      editable={!memberLoading}
+                    />
                   </View>
-                ))}
-              </>
-            )}
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryButton,
+                    { backgroundColor: colors.buttonSecondary },
+                    (memberLoading || !newMemberName.trim()) && { opacity: 0.6 }
+                  ]}
+                  onPress={handleAddMember}
+                  disabled={memberLoading || !newMemberName.trim()}
+                  activeOpacity={0.8}
+                >
+                  {memberLoading ? (
+                    <ActivityIndicator size="small" color={colors.textWhite} />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="plus" size={18} color={colors.textWhite} />
+                      <Text style={[styles.buttonText, { color: colors.textWhite }]}>Adicionar</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
           </View>
+
+          {/* Members List */}
+          {memberLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.mutedText }]}>Carregando membros...</Text>
+            </View>
+          ) : familyMembers.length === 0 ? (
+            <View style={[styles.emptyState, { backgroundColor: colors.cardBackground }]}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.mutedText + '20' }]}>
+                <MaterialCommunityIcons name="account-multiple-outline" size={24} color={colors.mutedText} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum membro ainda</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+                Adicione membros da família para começar a atribuir tarefas
+              </Text>
+            </View>
+          ) : (
+            familyMembers.map((member, index) => (
+              <View key={member.id} style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+                <View style={styles.sectionContent}>
+                  <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                    <MaterialCommunityIcons name="account" size={24} color={colors.primary} />
+                  </View>
+                  <View style={styles.sectionTextContainer}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{member.name}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleDeleteMember(member.id, member.name)}
+                  style={[
+                    styles.actionButton,
+                    deletingMember === member.id && { opacity: 0.6 }
+                  ]}
+                  disabled={deletingMember === member.id}
+                  accessibilityLabel={`Remover ${member.name}`}
+                >
+                  {deletingMember === member.id ? (
+                    <ActivityIndicator size={20} color={colors.danger} />
+                  ) : (
+                    <MaterialCommunityIcons name="delete-outline" size={20} color={colors.danger} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </View>
 
         {/* Account Section */}
-        <View style={[styles.section, { backgroundColor: themeStyles.cardBackground, borderColor: themeStyles.border }]}>
-          <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="account-cog" size={24} color={themeStyles.buttonBackground} />
-            <Text style={[styles.sectionTitle, { color: themeStyles.text }]}>Conta</Text>
-          </View>
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.categoryTitle, { color: colors.text }]}>Conta</Text>
 
+          {/* User Info */}
           {user && (
-            <View style={styles.userInfo}>
-              <Text style={[styles.userLabel, { color: themeStyles.secondaryText }]}>Usuário logado:</Text>
-              <Text style={[styles.userEmail, { color: themeStyles.text }]}>{user.email}</Text>
+            <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+              <View style={styles.sectionContent}>
+                <View style={[styles.iconContainer, { backgroundColor: colors.accentCyan + '20' }]}>
+                  <MaterialCommunityIcons name="email" size={24} color={colors.accentCyan} />
+                </View>
+                <View style={styles.sectionTextContainer}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Email</Text>
+                  <Text style={[styles.sectionSubtitle, { color: colors.mutedText }]}>{user.email}</Text>
+                </View>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
             </View>
           )}
 
+          {/* Sign Out */}
           <TouchableOpacity
-            style={[styles.button, styles.signOutButton, { backgroundColor: themeStyles.deleteButton }]}
+            style={[styles.section, { backgroundColor: colors.cardBackground }]}
             onPress={handleSignOut}
             activeOpacity={0.8}
           >
-            <MaterialCommunityIcons name="logout" size={20} color="#fff" />
-            <Text style={[styles.buttonText, { color: '#fff' }]}>Sair da Conta</Text>
+            <View style={styles.sectionContent}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.danger + '20' }]}>
+                <MaterialCommunityIcons name="logout" size={24} color={colors.danger} />
+              </View>
+              <View style={styles.sectionTextContainer}>
+                <Text style={[styles.sectionTitle, { color: colors.danger }]}>Sair da Conta</Text>
+              </View>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
           </TouchableOpacity>
         </View>
       </ScrollView>
-      </View>
-      </SafeAreaView>
+    </SafeAreaView>
   );
 }
 
@@ -505,181 +505,168 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 44,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 50,
   },
   backButton: {
     padding: 8,
-    marginRight: 12,
+    marginRight: 16,
+    borderRadius: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     flex: 1,
   },
-  themeButton: {
-    padding: 8,
-  },
+
   content: {
     flexGrow: 1,
-    paddingBottom: 24,
+    paddingBottom: 32,
+  },
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginLeft: 20,
+    marginBottom: 12,
   },
   section: {
-    marginHorizontal: 16,
-    marginVertical: 12,
+    marginHorizontal: 20,
+    marginBottom: 12,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6,
-    borderWidth: 1,
-  },
-  sectionHeader: {
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginLeft: 8,
+  sectionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  refreshButton: {
-    padding: 4,
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
   },
-  inputGroup: {
-    marginBottom: 16,
+  sectionTextContainer: {
+    flex: 1,
   },
-  label: {
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 2,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  inputGroup: {
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  inputContainer: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
   input: {
-    borderWidth: 1.5,
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    fontSize: 14,
+    paddingVertical: 8,
   },
   loadingInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 12,
+    paddingVertical: 12,
   },
   loadingText: {
     marginLeft: 8,
     fontSize: 14,
+    fontWeight: '500',
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 24,
+    marginHorizontal: 20,
   },
   currencyInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
   currencyPrefix: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginRight: 8,
   },
   currencyInput: {
     flex: 1,
-    borderWidth: 1.5,
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    fontSize: 14,
+    paddingVertical: 8,
   },
-  button: {
+  primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 12,
     marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
   },
-  disabledButton: {
-    opacity: 0.6,
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
-  signOutButton: {
-    marginTop: 16,
-  },
-  membersList: {
-    marginTop: 16,
-  },
-  membersCount: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  memberItem: {
-    flexDirection: 'row',
+  emptyState: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    padding: 24,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  memberInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  memberName: {
+  emptyTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 8,
+    fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 4,
   },
   emptyText: {
     fontSize: 14,
-    fontWeight: '400',
     textAlign: 'center',
-    lineHeight: 22,
-    paddingVertical: 16,
-  },
-  userInfo: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-  },
-  userLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    fontWeight: '600',
+    lineHeight: 20,
   },
 });

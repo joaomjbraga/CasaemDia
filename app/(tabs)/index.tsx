@@ -4,7 +4,7 @@ import { useFamilyMembers } from '@/contexts/FamilyMembersContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import BalanceCard from '../../components/BalanceCard';
 import Header from '../../components/Header';
 import QuickActions from '../../components/QuickActions';
@@ -175,7 +175,7 @@ export default function Dashboard() {
         .from('tasks')
         .insert([{
           title,
-          assignee: assignee.name, // Use name instead of ID
+          assignee: assignee.name,
           points,
           user_id: user.id,
           done: false,
@@ -223,7 +223,6 @@ export default function Dashboard() {
 
   // Função para navegar para a tela de todas as tarefas
   const handleViewAllTasks = () => {
-    // Implementar navegação para tela de tarefas
     console.log('Navegar para todas as tarefas');
   };
 
@@ -237,10 +236,10 @@ export default function Dashboard() {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar
           barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={isDark ? '#f86565' : '#3E8E7E'}
+          backgroundColor={theme.background}
         />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.tint} />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text style={[styles.loadingText, { color: theme.text }]}>Carregando...</Text>
         </View>
       </SafeAreaView>
@@ -248,44 +247,46 @@ export default function Dashboard() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundSecondary }]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? '#f86565' : '#3E8E7E'}
+        backgroundColor={theme.background}
       />
-      <ImageBackground
-        source={require('@/assets/images/backgroud-default.jpg')}
-        style={styles.backgroundImage}
-      >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <Header
-          user={user}
-          isDark={isDark}
-          onToggleTheme={toggleTheme}
-        />
-
-        <BalanceCard isDark={isDark} theme={theme} />
-        <RankingCard
-          coupleStats={coupleStats}
-          theme={theme}
-          isDark={isDark}
-        />
-        <TasksCard
-          tasks={tasks}
-          progressPercentage={progressPercentage}
-          completedTasks={completedTasks}
-          totalTasks={totalTasks}
-          toggleTask={toggleTask}
-          deleteTask={deleteTask}
-          onViewAll={handleViewAllTasks}
-        />
-        <QuickActions theme={theme} isDark={isDark} />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <Header
+            user={user}
+          />
+          <ScrollView
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScrollContainer}
+          >
+            <View style={styles.cardContainer}>
+              <BalanceCard isDark={isDark} theme={theme} />
+            </View>
+            <View style={styles.cardContainer}>
+              <RankingCard
+                coupleStats={coupleStats}
+                theme={theme}
+                isDark={isDark}
+              />
+            </View>
+          </ScrollView>
+          <TasksCard
+            tasks={tasks}
+            progressPercentage={progressPercentage}
+            completedTasks={completedTasks}
+            totalTasks={totalTasks}
+            toggleTask={toggleTask}
+            deleteTask={deleteTask}
+            onViewAll={handleViewAllTasks}
+          />
+          <QuickActions theme={theme} isDark={isDark} />
         </ScrollView>
-      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -312,5 +313,17 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     resizeMode: 'cover',
-  }
+  },
+  horizontalScrollContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+  },
+  cardContainer: {
+    width: 320, // Ajustado para uma largura um pouco maior para melhor legibilidade
+    height: 380, // Altura fixa para uniformizar os cards
+    justifyContent: 'flex-start',
+  },
 });

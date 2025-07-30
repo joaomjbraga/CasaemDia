@@ -1,15 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import Colors from '../../constants/Colors'; // Importa Colors.ts
 import { useTheme } from '../../contexts/ThemeContext';
-
-interface Theme {
-  text: string;
-  background: string;
-  tint: string;
-  tabIconDefault: string;
-  tabIconSelected: string;
-}
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -20,24 +13,17 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const { isDark } = useTheme();
-
-  const theme: Theme = {
-    text: isDark ? '#FFFFFF' : '#010101',
-    background: isDark ? '#1E1E1E' : '#f8f9fa',
-    tint: isDark ? '#6B7280' : '#8B7355',
-    tabIconDefault: isDark ? '#A0A0A0' : '#6B6B6B',
-    tabIconSelected: isDark ? '#6B7280' : '#2D6B5F',
-  };
+  const colors = isDark ? Colors.dark : Colors.light;
 
   return (
     <Tabs
       initialRouteName="index"
       screenOptions={{
-        tabBarActiveTintColor: theme.tint,
-        tabBarInactiveTintColor: theme.tabIconDefault,
+        tabBarActiveTintColor: colors.tint,
+        tabBarInactiveTintColor: colors.tabIconDefault,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.background,
+          backgroundColor: 'white',
         },
       }}
     >
@@ -58,22 +44,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name='ExpenseReportScreen'
+        name="ExpenseReportScreen"
         options={{
           title: 'Relatórios',
           tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
-          tabBarLabel: 'Historico mês',
+          tabBarLabel: 'Histórico Mês',
         }}
       />
       <Tabs.Screen
-        name='AddTaskScreen'
+        name="AddTaskScreen"
         options={{
           title: 'Tarefas',
           tabBarIcon: ({ color }) => <TabBarIcon name="list-status" color={color} />,
-          tabBarLabel: 'tarefas'
+          tabBarLabel: 'Tarefas',
         }}
       />
-      <Tabs.Screen name='(stack)' options={{href: null}} />
+      <Tabs.Screen name="(stack)" options={{ href: null }} />
     </Tabs>
   );
 }

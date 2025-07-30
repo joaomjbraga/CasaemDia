@@ -1,9 +1,19 @@
-import { useTheme } from '@/contexts/ThemeContext';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
+import Colors from '../../constants/Colors';
 import { handleSupabaseError, supabase } from '../../lib/supabase';
+
+const { width } = Dimensions.get('window');
 
 interface Expense {
   amount: number;
@@ -13,7 +23,6 @@ interface Expense {
 }
 
 export default function ExpenseReportScreen() {
-  const { isDark } = useTheme();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpenses, setTotalExpenses] = useState<number>(0);
   const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
@@ -22,18 +31,13 @@ export default function ExpenseReportScreen() {
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
 
-  // Função para formatar números brasileiros
   const formatCurrency = useCallback((value: number | string | null | undefined): string => {
     const numericValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
-    if (numericValue == null || isNaN(numericValue)) {
-      console.log('formatCurrency: valor inválido', { value, numericValue });
-      return 'R$ 0,00';
-    }
+    if (numericValue == null || isNaN(numericValue)) return 'R$ 0,00';
     const formatted = Math.abs(numericValue).toFixed(2).replace('.', ',');
     return `${numericValue < 0 ? '-' : ''}R$ ${formatted}`;
   }, []);
 
-  // Função para formatar data
   const formatDate = useCallback((dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
@@ -43,28 +47,19 @@ export default function ExpenseReportScreen() {
     });
   }, []);
 
-  // Obtém o ID do usuário autenticado
   const getUserId = useCallback(async (): Promise<string | null> => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) throw new Error('Usuário não autenticado');
-      console.log('Usuário autenticado:', user.id);
       return user.id;
     } catch (error) {
-      const errorMessage = handleSupabaseError(error, 'ao obter usuário');
-      console.error('Erro ao obter usuário:', error);
-      Alert.alert('Erro', errorMessage);
+      Alert.alert('Erro', handleSupabaseError(error, 'ao obter usuário'));
       return null;
     }
   }, []);
 
-  // Busca dados do Supabase
   const fetchData = useCallback(async (currentUserId: string) => {
-    if (!currentUserId || !isMountedRef.current) {
-      console.log('fetchData ignorado:', { currentUserId, isMounted: isMountedRef.current });
-      return;
-    }
-
+    if (!currentUserId || !isMountedRef.current) return;
     setIsLoading(true);
     try {
       const { data: balanceData, error: balanceError } = await supabase
@@ -73,56 +68,44 @@ export default function ExpenseReportScreen() {
         .eq('user_id', currentUserId)
         .single();
 
-      if (balanceError && balanceError.code !== 'PGRST116') {
-        throw balanceError;
-      }
+      if (balanceError && balanceError.code !== 'PGRST116') throw balanceError;
 
       const newMonthlyBudget = Number(balanceData?.monthly_budget) || 0;
 
       const currentDate = new Date();
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
         .select('amount, description, payer, created_at')
         .eq('user_id', currentUserId)
-        .gte('created_at', firstDayOfMonth.toISOString())
-        .lte('created_at', lastDayOfMonth.toISOString())
+        .gte('created_at', firstDay.toISOString())
+        .lte('created_at', lastDay.toISOString())
         .order('created_at', { ascending: false });
 
       if (expensesError) throw expensesError;
 
-      const totalExpenses = expensesData?.reduce((sum: number, expense: Expense) => sum + Number(expense.amount), 0) || 0;
-      const formattedExpenses = expensesData?.map((expense: Expense) => ({
-        ...expense,
-        amount: Number(expense.amount),
-      })) || [];
+      const total = expensesData?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+      const formatted = expensesData?.map((e) => ({ ...e, amount: Number(e.amount) })) || [];
 
       if (isMountedRef.current) {
-        console.log('Dados atualizados:', { newMonthlyBudget, totalExpenses, formattedExpenses });
         setMonthlyBudget(newMonthlyBudget);
-        setTotalExpenses(totalExpenses);
-        setExpenses(formattedExpenses);
-
-        if (newMonthlyBudget === 0 && totalExpenses > 0) {
-          Alert.alert('Aviso', 'Seu orçamento mensal está definido como zero. Considere configurar um valor.');
+        setTotalExpenses(total);
+        setExpenses(formatted);
+        if (newMonthlyBudget === 0 && total > 0) {
+          Alert.alert('Aviso', 'Seu orçamento mensal está definido como zero.');
         }
       }
     } catch (error) {
-      const errorMessage = handleSupabaseError(error, 'ao buscar dados do relatório');
-      console.error('Erro ao buscar dados:', error);
       if (isMountedRef.current) {
-        Alert.alert('Erro', errorMessage);
+        Alert.alert('Erro', handleSupabaseError(error, 'ao buscar dados'));
       }
     } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, []);
 
-  // Configura dados e assinaturas em tempo real
   useEffect(() => {
     const initialize = async () => {
       const id = await getUserId();
@@ -130,210 +113,373 @@ export default function ExpenseReportScreen() {
         setUserId(id);
         await fetchData(id);
 
-        const subscription = supabase
+        const sub = supabase
           .channel(`report_changes_${id}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'expenses', filter: `user_id=eq.${id}` },
-            (payload) => {
-              console.log('Evento expenses_changes:', payload);
-              if (isMountedRef.current) fetchData(id);
-            }
-          )
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'balances', filter: `user_id=eq.${id}` },
-            (payload) => {
-              console.log('Evento balances_changes:', payload);
-              if (isMountedRef.current) fetchData(id);
-            }
-          )
-          .subscribe((status) => {
-            console.log('Status da assinatura:', status);
-            if (status === 'SUBSCRIBED' && isMountedRef.current) {
-              fetchData(id);
-            }
-          });
+          .on('postgres_changes', {
+            event: '*', schema: 'public', table: 'expenses', filter: `user_id=eq.${id}`,
+          }, () => fetchData(id))
+          .on('postgres_changes', {
+            event: '*', schema: 'public', table: 'balances', filter: `user_id=eq.${id}`,
+          }, () => fetchData(id))
+          .subscribe();
 
-        subscriptionRef.current = subscription;
+        subscriptionRef.current = sub;
       }
     };
 
     initialize();
-
     return () => {
       isMountedRef.current = false;
       if (subscriptionRef.current) {
-        console.log('Removendo assinatura do canal');
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
     };
   }, [getUserId, fetchData]);
 
+  const getBudgetPercentage = () => {
+    if (monthlyBudget === 0) return 0;
+    return Math.min((totalExpenses / monthlyBudget) * 100, 100);
+  };
+
+  const getRemainingBudget = () => monthlyBudget - totalExpenses;
+
+  const getBudgetStatus = () => {
+    const remaining = getRemainingBudget();
+    const percentage = getBudgetPercentage();
+
+    if (remaining < 0) return { color: Colors.light.danger, status: 'Orçamento Excedido' };
+    if (percentage > 80) return { color: Colors.light.warning, status: 'Atenção!' };
+    return { color: Colors.light.success, status: 'No Controle' };
+  };
+
+  const getExpenseIcon = (description: string) => {
+    const desc = description.toLowerCase();
+    if (desc.includes('mercado') || desc.includes('supermercado') || desc.includes('comida')) return 'cart';
+    if (desc.includes('transporte') || desc.includes('uber') || desc.includes('combustível')) return 'car';
+    if (desc.includes('lazer') || desc.includes('cinema') || desc.includes('restaurante')) return 'movie';
+    if (desc.includes('saúde') || desc.includes('médico') || desc.includes('farmácia')) return 'medical-bag';
+    if (desc.includes('conta') || desc.includes('luz') || desc.includes('água')) return 'receipt';
+    return 'cash';
+  };
+
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={isDark ? '#FFFFFF' : '#000000'} />
-        <Text style={[styles.loadingText, { color: isDark ? '#FFFFFF' : '#000000' }]}>
-          Carregando relatório...
-        </Text>
+      <View style={[styles.loadingContainer, { backgroundColor: Colors.light.background }]}>
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color={Colors.light.primary} />
+          <Text style={[styles.loadingText, { color: Colors.light.text }]}>
+            Carregando relatório...
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <LinearGradient
-      colors={isDark ? ['#6B7280', '#374151'] : ['#8B7355', '#6B5B73']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
+      <StatusBar barStyle={'default'} backgroundColor={Colors.light.primary} />
+      {/* Header com gradiente visual */}
+      <View style={[styles.header, { backgroundColor: Colors.light.primary }]}>
         <View style={styles.headerContent}>
-          <View style={[
-            styles.iconContainer,
-            { backgroundColor: isDark ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
-          ]}>
+          <View style={[styles.iconContainer, { backgroundColor: Colors.light.textWhite }]}>
             <MaterialCommunityIcons
-              name="chart-bar"
-              color={isDark ? '#ffffff' : '#FFFFFF'}
-              size={24}
+              name="chart-line"
+              color={Colors.light.primary}
+              size={28}
             />
           </View>
-          <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#FFFFFF' }]}>
-            Relatório de Gastos
-          </Text>
-        </View>
-      </View>
-
-      <View style={[
-        styles.summary,
-        { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
-      ]}>
-        <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
-            Total de Gastos
-          </Text>
-          <Text style={[styles.summaryValue, { color: isDark ? '#f5f5f5' : '#FFFFFF' }]}>
-            {formatCurrency(totalExpenses)}
-          </Text>
-        </View>
-        {monthlyBudget > 0 && (
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(247, 247, 247, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
-              Restante do Orçamento
+          <View style={styles.headerTextContainer}>
+            <Text style={[styles.headerTitle, { color: Colors.light.textWhite }]}>
+              Relatório de Gastos
             </Text>
-            <Text style={[
-              styles.summaryValue,
-              {
-                color: totalExpenses > monthlyBudget ? '#ef4444' : (isDark ? '#ededed' : '#FFFFFF')
-              }
-            ]}>
-              {formatCurrency(monthlyBudget - totalExpenses)}
+            <Text style={[styles.headerSubtitle, { color: Colors.light.textWhite }]}>
+              {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
             </Text>
           </View>
-        )}
+        </View>
       </View>
 
-      <ScrollView style={styles.expenseList}>
-        {expenses.length > 0 ? (
-          expenses.map((expense, index) => (
-            <View
-              key={index}
-              style={[
-                styles.expenseItem,
-                { borderBottomColor: isDark ? 'rgba(172, 170, 170, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
-              ]}
-            >
-              <View style={[
-                styles.expenseIndicator,
-                { backgroundColor: isDark ? '#ffd9d9' : '#22c55e' }
-              ]} />
-              <View style={styles.expenseDetails}>
-                <Text style={[styles.expenseDescription, { color: isDark ? '#d5d5d5' : '#FFFFFF' }]}>
-                  {expense.description}
-                </Text>
-                <Text style={[styles.expensePayer, { color: isDark ? 'rgba(228, 228, 228, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
-                  Pagador: {expense.payer}
-                </Text>
-                <Text style={[styles.expenseDate, { color: isDark ? 'rgba(221, 221, 221, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
-                  Data: {formatDate(expense.created_at)}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Cards de Resumo */}
+        <View style={styles.summaryContainer}>
+          {/* Total de Gastos */}
+          <View style={[styles.summaryCard, { backgroundColor: Colors.light.cardBackground }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: Colors.light.accentBlue + '20' }]}>
+                <MaterialCommunityIcons name="trending-up" size={24} color={Colors.light.accentBlue} />
+              </View>
+              <Text style={[styles.cardLabel, { color: Colors.light.mutedText }]}>Total de Gastos</Text>
+            </View>
+            <Text style={[styles.cardValue, { color: Colors.light.text }]}>
+              {formatCurrency(totalExpenses)}
+            </Text>
+          </View>
+
+          {/* Orçamento */}
+          {monthlyBudget > 0 && (
+            <View style={[styles.summaryCard, { backgroundColor: Colors.light.cardBackground }]}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIcon, { backgroundColor: getBudgetStatus().color + '20' }]}>
+                  <MaterialCommunityIcons
+                    name="wallet"
+                    size={24}
+                    color={getBudgetStatus().color}
+                  />
+                </View>
+                <Text style={[styles.cardLabel, { color: Colors.light.mutedText }]}>
+                  {getBudgetStatus().status}
                 </Text>
               </View>
-              <Text style={[styles.expenseAmount, { color: isDark ? '#ffff' : '#FFFFFF' }]}>
-                {formatCurrency(expense.amount)}
+              <Text style={[styles.cardValue, { color: getBudgetStatus().color }]}>
+                {formatCurrency(getRemainingBudget())}
+              </Text>
+
+              {/* Barra de Progresso */}
+              <View style={styles.progressContainer}>
+                <View style={[styles.progressBar, { backgroundColor: Colors.light.borderLight }]}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${getBudgetPercentage()}%`,
+                        backgroundColor: getBudgetStatus().color
+                      }
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.progressText, { color: Colors.light.mutedText }]}>
+                  {getBudgetPercentage().toFixed(0)}% do orçamento usado
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Lista de Despesas */}
+        <View style={[styles.expensesSection, { backgroundColor: Colors.light.cardBackground }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: Colors.light.text }]}>
+              Despesas do Mês
+            </Text>
+            <View style={[styles.expenseCount, { backgroundColor: Colors.light.primary }]}>
+              <Text style={[styles.expenseCountText, { color: Colors.light.textWhite }]}>
+                {expenses.length}
               </Text>
             </View>
-          ))
-        ) : (
-          <Text style={[styles.noExpensesText, { color: isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
-            Nenhuma despesa registrada este mês.
-          </Text>
-        )}
+          </View>
+
+          {expenses.length > 0 ? (
+            expenses.map((expense, index) => (
+              <View key={index} style={styles.expenseItem}>
+                <View style={[styles.expenseIcon, { backgroundColor: Colors.light.illustrationCyan + '20' }]}>
+                  <MaterialCommunityIcons
+                    name={getExpenseIcon(expense.description)}
+                    size={20}
+                    color={Colors.light.illustrationCyan}
+                  />
+                </View>
+
+                <View style={styles.expenseDetails}>
+                  <Text style={[styles.expenseDescription, { color: Colors.light.text }]}>
+                    {expense.description}
+                  </Text>
+                  <View style={styles.expenseMetadata}>
+                    <View style={styles.metadataItem}>
+                      <MaterialIcons name="person" size={14} color={Colors.light.mutedText} />
+                      <Text style={[styles.expensePayer, { color: Colors.light.mutedText }]}>
+                        {expense.payer}
+                      </Text>
+                    </View>
+                    <View style={styles.metadataItem}>
+                      <MaterialIcons name="date-range" size={14} color={Colors.light.mutedText} />
+                      <Text style={[styles.expenseDate, { color: Colors.light.mutedText }]}>
+                        {formatDate(expense.created_at)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.expenseAmountContainer}>
+                  <Text style={[styles.expenseAmount, { color: Colors.light.text }]}>
+                    {formatCurrency(expense.amount)}
+                  </Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIcon, { backgroundColor: Colors.light.borderLight }]}>
+                <MaterialCommunityIcons
+                  name="receipt"
+                  size={48}
+                  color={Colors.light.mutedText}
+                />
+              </View>
+              <Text style={[styles.emptyTitle, { color: Colors.light.text }]}>
+                Nenhuma despesa encontrada
+              </Text>
+              <Text style={[styles.emptyDescription, { color: Colors.light.mutedText }]}>
+                Você ainda não registrou despesas este mês
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 40,
-    paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingCard: {
+    backgroundColor: Colors.light.cardBackground,
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
+    fontWeight: '500',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconContainer: {
-    padding: 10,
+    padding: 12,
+    borderRadius: 16,
+    marginRight: 16,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    opacity: 0.9,
+    textTransform: 'capitalize',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  summaryContainer: {
+    marginTop: -10,
+    marginBottom: 30,
+  },
+  summaryCard: {
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardIcon: {
+    padding: 8,
     borderRadius: 12,
     marginRight: 12,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  summary: {
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 12,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryLabel: {
+  cardLabel: {
     fontSize: 14,
     fontWeight: '500',
   },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '600',
+  cardValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
-  expenseList: {
-    flex: 1,
+  progressContainer: {
+    marginTop: 16,
+  },
+  progressBar: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  expensesSection: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    marginBottom: 40,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.borderLight,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  expenseCount: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  expenseCountText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   expenseItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    padding: 24,
     borderBottomWidth: 1,
+    borderBottomColor: Colors.light.borderLight,
   },
-  expenseIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
+  expenseIcon: {
+    padding: 12,
+    borderRadius: 12,
+    marginRight: 16,
   },
   expenseDetails: {
     flex: 1,
@@ -341,31 +487,47 @@ const styles = StyleSheet.create({
   expenseDescription: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 12,
   },
-  expensePayer: {
-    fontSize: 13,
-    marginBottom: 2,
+  expenseMetadata: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  expenseDate: {
-    fontSize: 13,
-  },
-  expenseAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  noExpensesText: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  metadataItem: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 16,
-    marginTop: 8,
+  expensePayer: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  expenseDate: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  expenseAmountContainer: {
+    alignItems: 'flex-end',
+  },
+  expenseAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyIcon: {
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
