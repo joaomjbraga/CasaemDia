@@ -17,7 +17,7 @@ export default function ConstructionModal({ visible, onClose }: ConstructionModa
     ? {
         text: theme.text, // #131313
         accent: '#252525',
-        highlight: theme.tint, // #C9F31D
+        highlight: theme.tint, // #f86565
         secondary: theme.tabIconDefault, // #B0B0B0
         btn: 'black'
       }

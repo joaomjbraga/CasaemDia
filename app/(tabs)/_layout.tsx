@@ -24,9 +24,9 @@ export default function TabLayout() {
   const theme: Theme = {
     text: isDark ? '#FFFFFF' : '#010101',
     background: isDark ? '#1E1E1E' : '#f8f9fa',
-    tint: isDark ? '#77ac74' : '#3E8E7E',
+    tint: isDark ? '#6B7280' : '#8B7355',
     tabIconDefault: isDark ? '#A0A0A0' : '#6B6B6B',
-    tabIconSelected: isDark ? '#77ac74' : '#2D6B5F',
+    tabIconSelected: isDark ? '#6B7280' : '#2D6B5F',
   };
 
   return (
@@ -63,6 +63,14 @@ export default function TabLayout() {
           title: 'Relatórios',
           tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
           tabBarLabel: 'Historico mês',
+        }}
+      />
+      <Tabs.Screen
+        name='AddTaskScreen'
+        options={{
+          title: 'Tarefas',
+          tabBarIcon: ({ color }) => <TabBarIcon name="list-status" color={color} />,
+          tabBarLabel: 'tarefas'
         }}
       />
       <Tabs.Screen name='(stack)' options={{href: null}} />

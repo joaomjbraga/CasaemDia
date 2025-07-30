@@ -1,5 +1,5 @@
-const tintColorLight = '#3E8E7E'; // verde azulado - equilíbrio, dinheiro, confiança
-const tintColorDark = '#77ac74';
+const tintColorLight = '#8B7355';
+const tintColorDark = '#6B7280';
 
 export default {
   light: {

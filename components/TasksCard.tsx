@@ -1,9 +1,8 @@
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
-import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useFamilyMembers } from '../contexts/FamilyMembersContext';
+import React, { useState } from 'react';
+import { Alert, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Colors from '../constants/Colors';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Task {
   id: number;
@@ -16,21 +15,15 @@ interface Task {
 
 interface TasksCardProps {
   tasks: Task[];
-  progressPercentage: number;
-  completedTasks: number;
-  totalTasks: number;
-  theme: {
-    text: string;
-    background: string;
-    tint: string;
-    tabIconDefault: string;
-    tabIconSelected: string;
-    bgConainer: string;
-  };
-  isDark: boolean;
+  progressPercentage?: number;
+  completedTasks?: number;
+  totalTasks?: number;
   toggleTask: (id: number) => Promise<void>;
-  addTask: (title: string, assignee_id: number, points: number, due_date: string | null) => void;
-  deleteTask: (id: number) => void;
+  deleteTask: (id: number) => Promise<void>;
+  onViewAll?: () => void;
+  maxHeight?: number;
+  showProgress?: boolean;
+  showEmptyState?: boolean;
 }
 
 export default function TasksCard({
@@ -38,200 +31,292 @@ export default function TasksCard({
   progressPercentage,
   completedTasks,
   totalTasks,
-  theme,
-  isDark,
   toggleTask,
-  addTask,
   deleteTask,
+  onViewAll,
+  maxHeight = 300,
+  showProgress = true,
+  showEmptyState = true,
 }: TasksCardProps) {
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskAssigneeId, setNewTaskAssigneeId] = useState<number | null>(null);
-  const [newTaskPoints, setNewTaskPoints] = useState('');
-  const [newTaskDueDate, setNewTaskDueDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const { familyMembers, loading, fetchFamilyMembers } = useFamilyMembers();
+  const { isDark } = useTheme();
+  const colors = isDark ? Colors.dark : Colors.light;
+  const [loadingTaskId, setLoadingTaskId] = useState<number | null>(null);
 
-  useEffect(() => {
-    console.log('TasksCard: Family members updated:', familyMembers);
-    if (familyMembers.length > 0) {
-      if (!newTaskAssigneeId || !familyMembers.some((member) => member.id === newTaskAssigneeId)) {
-        console.log('TasksCard: Setting newTaskAssigneeId to:', familyMembers[0].id);
-        setNewTaskAssigneeId(familyMembers[0].id);
-      }
-    } else {
-      console.log('TasksCard: No family members, setting newTaskAssigneeId to null');
-      setNewTaskAssigneeId(null);
-    }
-  }, [familyMembers, newTaskAssigneeId]);
-
-  const handleAddTask = () => {
-    if (!newTaskTitle || !newTaskAssigneeId || !newTaskPoints) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
-      return;
-    }
-    const points = parseInt(newTaskPoints);
-    if (isNaN(points) || points <= 0) {
-      Alert.alert('Erro', 'Os pontos devem ser um número maior que zero.');
-      return;
-    }
-    const dueDate = newTaskDueDate ? newTaskDueDate.toISOString() : null;
-    console.log('TasksCard: Adding task:', { title: newTaskTitle, assignee_id: newTaskAssigneeId, points, due_date: dueDate });
-    addTask(newTaskTitle, newTaskAssigneeId, points, dueDate);
-    setNewTaskTitle('');
-    setNewTaskPoints('');
-    setNewTaskDueDate(null);
-    if (familyMembers.length > 0) {
-      setNewTaskAssigneeId(familyMembers[0].id);
-    }
-  };
-
-  const handleDeleteTask = (id: number) => {
-    deleteTask(id);
-  };
-
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setNewTaskDueDate(selectedDate);
-    }
-  };
+  const calculatedCompletedTasks = completedTasks ?? tasks.filter(task => task.done).length;
+  const calculatedTotalTasks = totalTasks ?? tasks.length;
+  const calculatedProgressPercentage = progressPercentage ??
+    (calculatedTotalTasks > 0 ? (calculatedCompletedTasks / calculatedTotalTasks) * 100 : 0);
 
   const formatDate = (date: string | null) => {
-    if (!date) return 'Sem data';
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+    if (!date) return 'Sem data limite';
+    const taskDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    taskDate.setHours(0, 0, 0, 0);
+
+    const diffTime = taskDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return `Atrasado há ${Math.abs(diffDays)} dia${Math.abs(diffDays) > 1 ? 's' : ''}`;
+    } else if (diffDays === 0) {
+      return 'Hoje';
+    } else if (diffDays === 1) {
+      return 'Amanhã';
+    } else if (diffDays <= 7) {
+      return `Em ${diffDays} dias`;
+    } else {
+      return taskDate.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+      });
+    }
   };
 
-  // Helper function to validate if task assignee still exists in family members
-  const isValidTaskAssignee = (assigneeName: string): boolean => {
-    return familyMembers.some(member => member.name === assigneeName);
+  const getDateColor = (date: string | null) => {
+    if (!date) return colors.tabIconDefault;
+    const taskDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    taskDate.setHours(0, 0, 0, 0);
+
+    const diffTime = taskDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return '#FF6B6B';
+    if (diffDays === 0) return '#FFB800';
+    if (diffDays === 1) return '#FFA726';
+    if (diffDays <= 3) return '#66BB6A';
+    return colors.tabIconDefault;
   };
+
+  const getTaskPriority = (task: Task) => {
+    if (task.done) return 'completed';
+    if (!task.due_date) return 'normal';
+
+    const taskDate = new Date(task.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    taskDate.setHours(0, 0, 0, 0);
+
+    const diffTime = taskDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return 'overdue';
+    if (diffDays <= 1) return 'urgent';
+    if (diffDays <= 3) return 'important';
+    return 'normal';
+  };
+
+  const handleToggleTask = async (taskId: number) => {
+    if (loadingTaskId) return;
+
+    setLoadingTaskId(taskId);
+    try {
+      await toggleTask(taskId);
+    } catch (error) {
+      console.error('Erro ao alterar status da tarefa:', error);
+      Alert.alert('Erro', 'Não foi possível alterar o status da tarefa.');
+    } finally {
+      setLoadingTaskId(null);
+    }
+  };
+
+  const handleDeleteTask = (taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    Alert.alert(
+      'Confirmar exclusão',
+      `Tem certeza que deseja excluir a tarefa "${task.title}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteTask(taskId);
+            } catch (error) {
+              console.error('Erro ao excluir tarefa:', error);
+              Alert.alert('Erro', 'Não foi possível excluir a tarefa.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const priorityOrder = { overdue: 0, urgent: 1, important: 2, normal: 3, completed: 4 };
+    const aPriority = getTaskPriority(a);
+    const bPriority = getTaskPriority(b);
+
+    if (aPriority !== bPriority) {
+      return priorityOrder[aPriority] - priorityOrder[bPriority];
+    }
+    return b.points - a.points;
+  });
+
+  if ((!tasks || tasks.length === 0) && showEmptyState) {
+    return (
+      <View style={[styles.tasksCard, { backgroundColor: colors.background }]}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionHeaderLeft}>
+            <View style={[styles.sectionIcon, { backgroundColor: colors.tint + '20' }]}>
+              <FontAwesome5 name="tasks" color={colors.tint} size={16} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Tarefas</Text>
+          </View>
+        </View>
+
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons name="check-all" size={48} color={colors.tabIconDefault} />
+          <Text style={[styles.emptyStateTitle, { color: colors.text }]}>Nenhuma tarefa por aqui!</Text>
+          <Text style={[styles.emptyStateSubtitle, { color: colors.tabIconDefault }]}>
+            Que tal criar uma nova tarefa?
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!tasks || tasks.length === 0) {
+    return null;
+  }
 
   return (
-    <View style={[styles.tasksCard, { backgroundColor: isDark ? '#151515' : '#fffffff8' }]}>
+    <View style={[styles.tasksCard, { backgroundColor: colors.background }]}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionHeaderLeft}>
-          <View style={[styles.sectionIcon, { backgroundColor: isDark ? 'rgba(164, 164, 164, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}>
-            <FontAwesome5 name="tasks" color={theme.tint} size={16} />
+          <View style={[styles.sectionIcon, { backgroundColor: colors.tint + '20' }]}>
+            <FontAwesome5 name="tasks" color={colors.tint} size={16} />
           </View>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Tarefas de Hoje</Text>
-        </View>
-        <TouchableOpacity style={styles.viewAllButton}>
-          <Text style={[styles.viewAllText, { color: theme.tint }]}>Ver todas</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.taskProgress}>
-        <View style={[styles.taskProgressBar, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}>
-          <View style={[styles.taskProgressFill, { width: `${progressPercentage}%`, backgroundColor: theme.tint }]} />
-        </View>
-        <Text style={[styles.taskProgressText, { color: theme.tabIconDefault }]}>
-          {completedTasks} de {totalTasks} concluídas ({Math.round(progressPercentage)}%)
-        </Text>
-      </View>
-
-      <View style={styles.tasksList}>
-        {tasks.map((task) => (
-          <View key={task.id} style={[styles.taskItem, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}>
-            <TouchableOpacity
-              onPress={() => toggleTask(task.id)}
-              style={[styles.checkbox, { borderColor: task.done ? theme.tint : theme.tabIconDefault, backgroundColor: task.done ? theme.tint : 'transparent' }]}
-            >
-              {task.done && (
-                <MaterialCommunityIcons name="check" color={isDark ? '#222222' : '#1E1E1E'} size={14} />
-              )}
-            </TouchableOpacity>
-            <View style={styles.taskContent}>
-              <Text
-                style={[styles.taskText, { textDecorationLine: task.done ? 'line-through' : 'none', color: task.done ? theme.tabIconDefault : theme.text }]}
-              >
-                {task.title}
-              </Text>
-              <View style={styles.taskMeta}>
-                <Text style={[styles.taskAssignee, {
-                  color: isValidTaskAssignee(task.assignee) ? theme.tabIconDefault : '#ff6b6b'
-                }]}>
-                  {isValidTaskAssignee(task.assignee) ? task.assignee : `${task.assignee} (removido)`}
-                </Text>
-                <View style={styles.taskPoints}>
-                  <MaterialCommunityIcons name="star" size={12} color={theme.tabIconSelected} />
-                  <Text style={[styles.taskPointsText, { color: theme.tabIconSelected }]}>{task.points} pts</Text>
-                </View>
-              </View>
-              <Text style={[styles.taskDueDate, { color: theme.tabIconDefault }]}>Vence em: {formatDate(task.due_date)}</Text>
-            </View>
-            <TouchableOpacity onPress={() => handleDeleteTask(task.id)} style={styles.deleteButton}>
-              <MaterialCommunityIcons name="delete" size={20} color={theme.tabIconDefault} />
-            </TouchableOpacity>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.newTaskForm}>
-        <TextInput
-          style={[styles.input, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
-          placeholder="Título da tarefa"
-          placeholderTextColor={theme.tabIconDefault}
-          value={newTaskTitle}
-          onChangeText={setNewTaskTitle}
-        />
-        <Picker
-          selectedValue={newTaskAssigneeId}
-          onValueChange={(itemValue) => setNewTaskAssigneeId(itemValue)}
-          style={[styles.picker, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
-          enabled={!loading}
-        >
-          {familyMembers.length === 0 ? (
-            <Picker.Item label="Nenhum membro disponível" value={null} />
-          ) : (
-            familyMembers.map((member) => (
-              <Picker.Item key={member.id} label={member.name} value={member.id} />
-            ))
-          )}
-        </Picker>
-        <TextInput
-          style={[styles.input, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)', color: theme.text }]}
-          placeholder="Pontos"
-          placeholderTextColor={theme.tabIconDefault}
-          value={newTaskPoints}
-          onChangeText={setNewTaskPoints}
-          keyboardType="numeric"
-        />
-        <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: theme.tabIconDefault }]}
-          onPress={() => setShowDatePicker(true)}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="calendar" color={theme.tabIconDefault} size={18} />
-          <Text style={[styles.secondaryButtonText, { color: theme.tabIconDefault }]}>
-            {newTaskDueDate ? formatDate(newTaskDueDate.toISOString()) : 'Selecionar Data'}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Tarefas ({calculatedTotalTasks})
           </Text>
-        </TouchableOpacity>
-        {showDatePicker && (
-          <DateTimePicker
-            value={newTaskDueDate || new Date()}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-            minimumDate={new Date()}
-          />
+        </View>
+        {onViewAll && calculatedTotalTasks > 0 && (
+          <TouchableOpacity style={styles.viewAllButton} onPress={onViewAll}>
+            <Text style={[styles.viewAllText, { color: colors.tint }]}>Ver todas</Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={colors.tint} />
+          </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.addTaskButton, { backgroundColor: theme.tint }]} onPress={handleAddTask}>
-          <MaterialCommunityIcons name="plus" color={isDark ? '#1E1E1E' : '#FFFFFF'} size={18} />
-          <Text style={[styles.addTaskText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>Adicionar Tarefa</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: theme.tabIconDefault }]}
-          onPress={fetchFamilyMembers}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="refresh" color={theme.tabIconDefault} size={18} />
-          <Text style={[styles.secondaryButtonText, { color: theme.tabIconDefault }]}>Atualizar Membros</Text>
-        </TouchableOpacity>
       </View>
+
+      {showProgress && calculatedTotalTasks > 0 && (
+        <View style={styles.taskProgress}>
+          <View style={[styles.taskProgressBar, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}>
+            <Animated.View style={[
+              styles.taskProgressFill,
+              { width: `${calculatedProgressPercentage}%`, backgroundColor: colors.tint }
+            ]} />
+          </View>
+          <View style={styles.progressTextContainer}>
+            <Text style={[styles.taskProgressText, { color: colors.tabIconDefault }]}>
+              {calculatedCompletedTasks} de {calculatedTotalTasks} concluídas
+            </Text>
+            <Text style={[styles.taskProgressPercentage, { color: colors.tint }]}>
+              {Math.round(calculatedProgressPercentage)}%
+            </Text>
+          </View>
+        </View>
+      )}
+
+      <ScrollView
+        style={[styles.tasksList, { maxHeight }]}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+      >
+        {sortedTasks.map((task) => {
+          const priority = getTaskPriority(task);
+          const isLoading = loadingTaskId === task.id;
+
+          return (
+            <View
+              key={task.id}
+              style={[
+                styles.taskItem,
+                {
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                  borderLeftWidth: 3,
+                  borderLeftColor: task.done ? colors.tint : getDateColor(task.due_date),
+                  opacity: task.done ? 0.7 : 1,
+                }
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => handleToggleTask(task.id)}
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: task.done ? colors.tint : colors.tabIconDefault,
+                    backgroundColor: task.done ? colors.tint : 'transparent'
+                  }
+                ]}
+                activeOpacity={0.7}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <MaterialCommunityIcons name="loading" color={colors.tabIconDefault} size={14} />
+                ) : task.done ? (
+                  <MaterialCommunityIcons name="check" color={colors.background} size={14} />
+                ) : null}
+              </TouchableOpacity>
+
+              <View style={styles.taskContent}>
+                <Text
+                  style={[
+                    styles.taskText,
+                    {
+                      textDecorationLine: task.done ? 'line-through' : 'none',
+                      color: task.done ? colors.tabIconDefault : colors.text
+                    }
+                  ]}
+                  numberOfLines={2}
+                >
+                  {task.title}
+                </Text>
+
+                <View style={styles.taskMeta}>
+                  <View style={styles.taskAssigneeContainer}>
+                    <MaterialCommunityIcons name="account" size={14} color={colors.tabIconDefault} />
+                    <Text style={[styles.taskAssignee, { color: colors.tabIconDefault }]}>
+                      {task.assignee}
+                    </Text>
+                  </View>
+
+                  <View style={styles.taskPoints}>
+                    <MaterialCommunityIcons name="star" size={14} color={colors.tint} />
+                    <Text style={[styles.taskPointsText, { color: colors.tint }]}>{task.points}</Text>
+                  </View>
+                </View>
+
+                {task.due_date && (
+                  <View style={styles.taskDateContainer}>
+                    <MaterialCommunityIcons
+                      name={priority === 'overdue' ? 'alert-circle' : 'calendar'}
+                      size={12}
+                      color={getDateColor(task.due_date)}
+                    />
+                    <Text style={[styles.taskDueDate, { color: getDateColor(task.due_date) }]}>
+                      {formatDate(task.due_date)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <TouchableOpacity
+                onPress={() => handleDeleteTask(task.id)}
+                style={styles.deleteButton}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="delete-outline" size={20} color={colors.tabIconDefault} />
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
@@ -240,13 +325,13 @@ const styles = StyleSheet.create({
   tasksCard: {
     marginHorizontal: 20,
     padding: 20,
-    borderRadius: 20,
-    marginBottom: 24,
-    shadowColor: '#030303',
-    shadowOffset: { width: 0, height: 2 },
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 5,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -259,138 +344,134 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionIcon: {
-    padding: 8,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 12,
     marginRight: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   viewAllButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    gap: 4,
   },
   viewAllText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   taskProgress: {
     marginBottom: 20,
   },
   taskProgressBar: {
-    height: 6,
-    borderRadius: 3,
+    height: 8,
+    borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
   },
   taskProgressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
+  },
+  progressTextContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   taskProgressText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
   },
+  taskProgressPercentage: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
   tasksList: {
-    marginBottom: 20,
+    // maxHeight será definida via props
   },
   taskItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   checkbox: {
-    height: 20,
-    width: 20,
+    height: 22,
+    width: 22,
     borderRadius: 6,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    marginTop: 2,
   },
   taskContent: {
     flex: 1,
+    paddingRight: 8,
   },
   taskText: {
-    fontSize: 15,
-    fontWeight: '500',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    lineHeight: 22,
   },
   taskMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  taskAssigneeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   taskAssignee: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
   },
   taskPoints: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   taskPointsText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  taskDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   taskDueDate: {
     fontSize: 12,
     fontWeight: '500',
-    marginTop: 4,
   },
   deleteButton: {
     padding: 8,
+    marginTop: -4,
   },
-  newTaskForm: {
-    marginBottom: 20,
-  },
-  input: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    fontSize: 14,
-  },
-  picker: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  addTaskButton: {
-    flex: 2,
-    flexDirection: 'row',
+  emptyState: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 40,
     paddingHorizontal: 20,
-    borderRadius: 12,
-    marginTop: 14,
   },
-  addTaskText: {
+  emptyStateTitle: {
+    fontSize: 18,
     fontWeight: '600',
-    marginLeft: 6,
-    fontSize: 15,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  secondaryButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 8,
-  },
-  secondaryButtonText: {
-    fontWeight: '500',
-    marginLeft: 6,
+  emptyStateSubtitle: {
     fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

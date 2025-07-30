@@ -82,7 +82,7 @@ function RootLayoutNav() {
           >
             <ActivityIndicator
               size="large"
-              color={isDark ? '#77ac74' : '#3E8E7E'}
+              color={isDark ? '#f86565' : '#3E8E7E'}
             />
             <Text
               style={{

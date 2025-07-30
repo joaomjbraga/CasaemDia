@@ -338,7 +338,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
   return (
     <>
       <LinearGradient
-        colors={isDark ? ['#77ac74', '#588d59'] : ['#3E8E7E', '#2D6B5F']}
+        colors={isDark ? ['#6b7280', '#374151'] : ['#8B7355', '#6B5B73']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.balanceCard}
@@ -348,18 +348,18 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             <View style={styles.iconContainer}>
               <MaterialCommunityIcons
                 name="wallet"
-                color={isDark ? '#1E1E1E' : '#FFFFFF'}
+                color={isDark ? '#ffffff' : '#FFFFFF'}
                 size={24}
               />
             </View>
-            <Text style={[styles.balanceLabel, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+            <Text style={[styles.balanceLabel, { color: isDark ? '#ffffff' : '#FFFFFF' }]}>
               Saldo Conjunto
             </Text>
           </View>
           <TouchableOpacity
             style={[
               styles.balanceAction,
-              { backgroundColor: isDark ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
+              { backgroundColor: isDark ? 'rgba(192, 192, 192, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
             ]}
             onPress={openModal}
             disabled={isSubmitting}
@@ -368,25 +368,25 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
           >
             <MaterialCommunityIcons
               name="plus"
-              color={isDark ? '#1E1E1E' : '#FFFFFF'}
+              color={isDark ? '#f6f6f6' : '#FFFFFF'}
               size={20}
             />
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.balanceAmount, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+        <Text style={[styles.balanceAmount, { color: isDark ? '#efefef' : '#FFFFFF' }]}>
           {formatCurrency(monthlyBudget - expenses)}
         </Text>
 
         <View style={styles.balanceProgress}>
           <View style={[
             styles.progressBar,
-            { backgroundColor: isDark ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
+            { backgroundColor: isDark ? 'rgba(114, 114, 113, 0.3)' : 'rgba(147, 147, 147, 0.3)' }
           ]}>
             <View style={[
               styles.progressFill,
               {
-                backgroundColor: progressData.isOverBudget ? '#ef4444' : (isDark ? '#1E1E1E' : '#FFFFFF'),
+                backgroundColor: progressData.isOverBudget ? '#ef4444' : (isDark ? '#fad6bb' : '#FFFFFF'),
                 width: `${progressData.percentage * 100}%` as DimensionValue
               }
             ]} />
@@ -396,7 +396,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             {
               color: progressData.isOverBudget
                 ? '#ef4444'
-                : (isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)')
+                : (isDark ? 'rgba(238, 238, 238, 0.8)' : 'rgba(255, 255, 255, 0.8)')
             }
           ]}>
             {monthlyBudget === 0
@@ -409,19 +409,19 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
 
         <View style={[
           styles.balanceDetails,
-          { borderTopColor: isDark ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
+          { borderTopColor: isDark ? 'rgba(190, 190, 190, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
         ]}>
           <View style={styles.expenseRow}>
             <Text style={[
               styles.expenseLabel,
-              { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
+              { color: isDark ? 'rgba(212, 212, 212, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
             ]}>
               Gastos do mês
             </Text>
             <Text style={[
               styles.expenseAmount,
               {
-                color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#1E1E1E' : '#FFFFFF')
+                color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#979797' : '#FFFFFF')
               }
             ]}>
               {formatCurrency(expenses)}
@@ -432,14 +432,14 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             <View style={styles.expenseRow}>
               <Text style={[
                 styles.expenseLabel,
-                { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
+                { color: isDark ? 'rgba(230, 230, 230, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
               ]}>
                 Restante do orçamento
               </Text>
               <Text style={[
                 styles.expenseAmount,
                 {
-                  color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#1E1E1E' : '#FFFFFF')
+                  color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#c1c1c1' : '#FFFFFF')
                 }
               ]}>
                 {formatCurrency(monthlyBudget - expenses)}
@@ -451,11 +451,11 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             <View style={styles.lastExpenseRow}>
               <View style={[
                 styles.expenseIndicator,
-                { backgroundColor: isDark ? '#26352a' : '#22c55e' }
+                { backgroundColor: isDark ? '#f6c34b' : '#22c55e' }
               ]} />
               <Text style={[
                 styles.lastExpenseText,
-                { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
+                { color: isDark ? 'rgba(242, 242, 242, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
               ]}>
                 {lastExpense.payer} pagou {formatCurrency(lastExpense.amount)} - {lastExpense.description}
               </Text>

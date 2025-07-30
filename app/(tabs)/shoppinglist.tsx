@@ -23,15 +23,15 @@ export default function ShoppingList() {
         gradient: ['#000', '#000'] as const,
         text: '#E8ECEF',
         accent: '#151515',
-        highlight: '#77ac74',
-        secondary: '#c0c5b0',
+        highlight: '#6B7280',
+        secondary: '#7f7f7f',
         btn: 'black'
       }
     : {
         gradient: ['#fffffff8', '#fffffff8'] as const,
         text: '#1C2526',
         accent: '#F1F5F9',
-        highlight: '#3E8E7E',
+        highlight: '#8B7355',
         secondary: '#374f32',
         btn: 'white'
       };

@@ -4,7 +4,7 @@ import { useFamilyMembers } from '@/contexts/FamilyMembersContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ImageBackground, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import BalanceCard from '../../components/BalanceCard';
 import Header from '../../components/Header';
 import QuickActions from '../../components/QuickActions';
@@ -221,12 +221,23 @@ export default function Dashboard() {
     }
   };
 
+  // Função para navegar para a tela de todas as tarefas
+  const handleViewAllTasks = () => {
+    // Implementar navegação para tela de tarefas
+    console.log('Navegar para todas as tarefas');
+  };
+
+  // Função para ser passada para o TaskForm
+  const handleAddTaskFromForm = async (title: string, assigneeId: number, points: number, due_date: string | null) => {
+    await addTask(title, assigneeId, points, due_date);
+  };
+
   if (loading || tasksLoading || familyMembersLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar
           barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={isDark ? '#77ac74' : '#3E8E7E'}
+          backgroundColor={isDark ? '#f86565' : '#3E8E7E'}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.tint} />
@@ -240,8 +251,12 @@ export default function Dashboard() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? '#77ac74' : '#3E8E7E'}
+        backgroundColor={isDark ? '#f86565' : '#3E8E7E'}
       />
+      <ImageBackground
+        source={require('@/assets/images/backgroud-default.jpg')}
+        style={styles.backgroundImage}
+      >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
@@ -264,14 +279,13 @@ export default function Dashboard() {
           progressPercentage={progressPercentage}
           completedTasks={completedTasks}
           totalTasks={totalTasks}
-          theme={theme}
-          isDark={isDark}
           toggleTask={toggleTask}
-          addTask={addTask}
           deleteTask={deleteTask}
+          onViewAll={handleViewAllTasks}
         />
         <QuickActions theme={theme} isDark={isDark} />
-      </ScrollView>
+        </ScrollView>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -295,4 +309,8 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 24,
   },
+  backgroundImage: {
+    flex: 1,
+    resizeMode: 'cover',
+  }
 });

@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -62,13 +63,21 @@ export default function LoginScreen() {
       flex: 1,
       justifyContent: 'center',
       padding: 20,
-      backgroundColor: colors.background,
+    },
+    backgroundImage: {
+      flex: 1,
+      resizeMode: 'cover',
+    },
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.background + 'CC', // Adiciona opacidade ao fundo
+      justifyContent: 'center',
+      padding: 20,
     },
     form: {
       width: '100%',
     },
     title: {
-      fontSize: 32,
       fontWeight: 'bold',
       textAlign: 'center',
       marginBottom: 40,
@@ -126,60 +135,68 @@ export default function LoginScreen() {
   });
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.form}>
-        <View style={{ alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <FontAwesome name="user-circle" color={colors.tint} size={100} />
-          <Text style={styles.title}>Entrar</Text>
+    <ImageBackground
+      source={require('@/assets/images/background-login.jpg')}
+      style={styles.backgroundImage}
+    >
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.form}>
+          <View style={{ alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <FontAwesome name="user-circle" color={colors.tint} size={100} />
+            <Text style={styles.title}>Entrar</Text>
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="E-mail"
+            placeholderTextColor={colors.tabIconDefault}
+            value={email}
+            onChangeText={(text) => setEmail(text.trim())}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            editable={!loading}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            placeholderTextColor={colors.tabIconDefault}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+            editable={!loading}
+          />
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading && <ActivityIndicator size="small" color={colorScheme === 'dark' ? '#000' : '#FFFFFF'} />}
+            <Text style={styles.buttonText}>{loading ? 'Entrando...' : 'Entrar'}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.links}>
+            <Link href="/(auth)/forgot" asChild>
+              <TouchableOpacity disabled={loading}>
+                <Text style={[styles.linkText, loading && styles.linkDisabled]}>Esqueceu a senha?</Text>
+              </TouchableOpacity>
+            </Link>
+
+            <Link href="/(auth)/register" asChild>
+              <TouchableOpacity disabled={loading}>
+                <Text style={[styles.linkText, loading && styles.linkDisabled]}>Criar conta</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
-
-        <TextInput
-          style={styles.input}
-          placeholder="E-mail"
-          placeholderTextColor={colors.tabIconDefault}
-          value={email}
-          onChangeText={(text) => setEmail(text.trim())}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          editable={!loading}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          placeholderTextColor={colors.tabIconDefault}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="password"
-          editable={!loading}
-        />
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          {loading && <ActivityIndicator size="small" color={colorScheme === 'dark' ? '#000' : '#FFFFFF'} />}
-          <Text style={styles.buttonText}>{loading ? 'Entrando...' : 'Entrar'}</Text>
-        </TouchableOpacity>
-
-        <View style={styles.links}>
-          <Link href="/(auth)/forgot" asChild>
-            <TouchableOpacity disabled={loading}>
-              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Esqueceu a senha?</Text>
-            </TouchableOpacity>
-          </Link>
-
-          <Link href="/(auth)/register" asChild>
-            <TouchableOpacity disabled={loading}>
-              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Criar conta</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }

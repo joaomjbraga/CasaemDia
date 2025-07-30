@@ -184,7 +184,7 @@ export default function ExpenseReportScreen() {
 
   return (
     <LinearGradient
-      colors={isDark ? ['#77ac74', '#588d59'] : ['#3E8E7E', '#2D6B5F']}
+      colors={isDark ? ['#6B7280', '#374151'] : ['#8B7355', '#6B5B73']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
@@ -197,11 +197,11 @@ export default function ExpenseReportScreen() {
           ]}>
             <MaterialCommunityIcons
               name="chart-bar"
-              color={isDark ? '#1E1E1E' : '#FFFFFF'}
+              color={isDark ? '#ffffff' : '#FFFFFF'}
               size={24}
             />
           </View>
-          <Text style={[styles.headerTitle, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+          <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#FFFFFF' }]}>
             Relatório de Gastos
           </Text>
         </View>
@@ -212,22 +212,22 @@ export default function ExpenseReportScreen() {
         { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
       ]}>
         <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
+          <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
             Total de Gastos
           </Text>
-          <Text style={[styles.summaryValue, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+          <Text style={[styles.summaryValue, { color: isDark ? '#f5f5f5' : '#FFFFFF' }]}>
             {formatCurrency(totalExpenses)}
           </Text>
         </View>
         {monthlyBudget > 0 && (
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
+            <Text style={[styles.summaryLabel, { color: isDark ? 'rgba(247, 247, 247, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
               Restante do Orçamento
             </Text>
             <Text style={[
               styles.summaryValue,
               {
-                color: totalExpenses > monthlyBudget ? '#ef4444' : (isDark ? '#1E1E1E' : '#FFFFFF')
+                color: totalExpenses > monthlyBudget ? '#ef4444' : (isDark ? '#ededed' : '#FFFFFF')
               }
             ]}>
               {formatCurrency(monthlyBudget - totalExpenses)}
@@ -243,31 +243,31 @@ export default function ExpenseReportScreen() {
               key={index}
               style={[
                 styles.expenseItem,
-                { borderBottomColor: isDark ? 'rgba(30, 30, 30, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
+                { borderBottomColor: isDark ? 'rgba(172, 170, 170, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
               ]}
             >
               <View style={[
                 styles.expenseIndicator,
-                { backgroundColor: isDark ? '#26352a' : '#22c55e' }
+                { backgroundColor: isDark ? '#ffd9d9' : '#22c55e' }
               ]} />
               <View style={styles.expenseDetails}>
-                <Text style={[styles.expenseDescription, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+                <Text style={[styles.expenseDescription, { color: isDark ? '#d5d5d5' : '#FFFFFF' }]}>
                   {expense.description}
                 </Text>
-                <Text style={[styles.expensePayer, { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
+                <Text style={[styles.expensePayer, { color: isDark ? 'rgba(228, 228, 228, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
                   Pagador: {expense.payer}
                 </Text>
-                <Text style={[styles.expenseDate, { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
+                <Text style={[styles.expenseDate, { color: isDark ? 'rgba(221, 221, 221, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
                   Data: {formatDate(expense.created_at)}
                 </Text>
               </View>
-              <Text style={[styles.expenseAmount, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+              <Text style={[styles.expenseAmount, { color: isDark ? '#ffff' : '#FFFFFF' }]}>
                 {formatCurrency(expense.amount)}
               </Text>
             </View>
           ))
         ) : (
-          <Text style={[styles.noExpensesText, { color: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
+          <Text style={[styles.noExpensesText, { color: isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)' }]}>
             Nenhuma despesa registrada este mês.
           </Text>
         )}
