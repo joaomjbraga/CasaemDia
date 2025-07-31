@@ -111,15 +111,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="ChatScreen"
         options={{
-          title: 'Configurações',
+          title: 'Chat Interno',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <TabBarIcon name="cog" color={color} size={24} />
+              <TabBarIcon name="chat" color={color} size={24} />
             </View>
           ),
-          tabBarLabel: 'Settings',
+          tabBarLabel: 'Chat',
         }}
       />
       <Tabs.Screen name="(stack)" options={{ href: null }} />
