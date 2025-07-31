@@ -12,7 +12,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -20,8 +19,6 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { resetPassword } = useAuth();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -69,99 +66,11 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: 'center',
-      padding: 20,
-      backgroundColor: colors.background,
-    },
-    form: {
-      width: '100%',
-    },
-    iconContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 40,
-      gap: 20,
-    },
-    title: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      color: colors.text,
-    },
-    subtitle: {
-      fontSize: 16,
-      textAlign: 'center',
-      marginBottom: 40,
-      color: colors.mutedText,
-      lineHeight: 24,
-      paddingHorizontal: 10,
-    },
-    input: {
-      height: 55,
-      borderWidth: 2,
-      borderColor: colors.border,
-      borderRadius: 16,
-      paddingHorizontal: 20,
-      marginBottom: 20,
-      fontSize: 16,
-      backgroundColor: colors.cardBackground,
-      color: colors.text,
-      shadowColor: colors.accentBlue,
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    button: {
-      height: 55,
-      backgroundColor: colors.primary,
-      borderRadius: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 30,
-      shadowColor: colors.primary,
-      shadowOffset: {
-        width: 0,
-        height: 4,
-      },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-      flexDirection: 'row',
-      gap: 12,
-    },
-    buttonDisabled: {
-      opacity: 0.6,
-    },
-    buttonText: {
-      color: colors.textWhite,
-      fontSize: 18,
-      fontWeight: '700',
-    },
-    links: {
-      alignItems: 'center',
-    },
-    linkText: {
-      color: colors.primary,
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    linkDisabled: {
-      opacity: 0.5,
-    },
-  });
-
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.form}>
         <View style={styles.iconContainer}>
-          <FontAwesome name="lock" color={colors.primary} size={120} />
+          <FontAwesome name="lock" color={Colors.light.primary} size={120} />
           <Text style={styles.title}>Recuperar Senha</Text>
         </View>
         <Text style={styles.subtitle}>
@@ -171,7 +80,7 @@ export default function ForgotPasswordScreen() {
         <TextInput
           style={styles.input}
           placeholder="E-mail"
-          placeholderTextColor={colors.mutedText}
+          placeholderTextColor={Colors.light.mutedText}
           value={email}
           onChangeText={(text) => setEmail(text.trim())}
           keyboardType="email-address"
@@ -186,7 +95,7 @@ export default function ForgotPasswordScreen() {
           disabled={loading}
           activeOpacity={0.8}
         >
-          {loading && <ActivityIndicator size="small" color={colors.textWhite} />}
+          {loading && <ActivityIndicator size="small" color={Colors.light.textWhite} />}
           <Text style={styles.buttonText}>{loading ? 'Enviando...' : 'Enviar Link'}</Text>
         </TouchableOpacity>
 
@@ -201,3 +110,90 @@ export default function ForgotPasswordScreen() {
     </KeyboardAvoidingView>
   );
 }
+const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: 20,
+      backgroundColor: 'white',
+    },
+    form: {
+      width: '100%',
+    },
+    iconContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 40,
+      gap: 20,
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      color: Colors.light.text,
+    },
+    subtitle: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 40,
+      color: Colors.light.mutedText,
+      lineHeight: 24,
+      paddingHorizontal: 10,
+    },
+    input: {
+      height: 55,
+      borderWidth: 2,
+      borderColor: Colors.light.border,
+      borderRadius: 16,
+      paddingHorizontal: 20,
+      marginBottom: 20,
+      fontSize: 16,
+      backgroundColor: Colors.light.cardBackground,
+      color: Colors.light.text,
+      shadowColor: Colors.light.accentBlue,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    button: {
+      height: 55,
+      backgroundColor: Colors.light.primary,
+      borderRadius: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 30,
+      shadowColor: Colors.light.primary,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      flexDirection: 'row',
+      gap: 12,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      color: Colors.light.textWhite,
+      fontSize: 18,
+      fontWeight: '700',
+    },
+    links: {
+      alignItems: 'center',
+    },
+    linkText: {
+      color: Colors.light.primary,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    linkDisabled: {
+      opacity: 0.5,
+    },
+  });

@@ -14,7 +14,7 @@ import Colors from '../constants/Colors';
 export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)', // Corrigido para apontar para o grupo (tabs)
+  initialRouteName: '(tabs)',
 };
 
 SplashScreen.preventAutoHideAsync();
@@ -71,19 +71,19 @@ function RootLayoutNav() {
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: Colors.light.backgroundSecondary, // Usa Colors.light
+              backgroundColor: '#fff',
             }}
           >
             <ActivityIndicator
               size="large"
-              color={Colors.light.primary} // Usa Colors.light
+              color={Colors.light.primary}
             />
             <Text
               style={{
                 marginTop: 16,
                 fontSize: 16,
                 fontWeight: '500',
-                color: Colors.light.secondary, // Usa Colors.light
+                color: Colors.light.secondary,
               }}
             >
               Carregando...

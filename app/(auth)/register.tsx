@@ -1,19 +1,16 @@
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { FontAwesome } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
+  Alert, ImageBackground, KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
-  View,
+  View
 } from 'react-native';
 
 export default function RegisterScreen() {
@@ -22,8 +19,6 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
 
   const validatePassword = (pwd: string) => {
     const hasLetter = /[a-zA-Z]/.test(pwd);
@@ -91,12 +86,77 @@ export default function RegisterScreen() {
     }
   };
 
+  return (
+    <ImageBackground
+      style={styles.backgroudimage}
+      source={require('@/assets/images/capa2.jpg')}
+    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={styles.form}>
+          <Text style={styles.title}>Criar Conta</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="E-mail"
+          placeholderTextColor={Colors.light.mutedText}
+          value={email}
+          onChangeText={(text) => setEmail(text.trim())}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          editable={!loading}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Senha (mín. 6 caracteres, letras e números)"
+          placeholderTextColor={Colors.light.mutedText}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="new-password"
+          editable={!loading}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmar Senha"
+          placeholderTextColor={Colors.light.mutedText}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          autoComplete="new-password"
+          editable={!loading}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          {loading && <ActivityIndicator size="small" color={Colors.light.textWhite} />}
+          <Text style={styles.buttonText}>{loading ? 'Criando conta...' : 'Criar Conta'}</Text>
+        </TouchableOpacity>
+
+        <View style={styles.links}>
+          <Link href="/(auth)/login" asChild>
+            <TouchableOpacity disabled={loading}>
+              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Já tem conta? Entrar</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+        </View>
+    </KeyboardAvoidingView>
+    </ImageBackground>
+  );
+}
+
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       justifyContent: 'center',
       padding: 20,
-      backgroundColor: colors.background,
     },
     form: {
       width: '100%',
@@ -111,19 +171,22 @@ export default function RegisterScreen() {
       fontSize: 32,
       fontWeight: 'bold',
       textAlign: 'center',
-      color: colors.text,
+      color: '#faf7fb',
+      backgroundColor: 'black',
+      borderRadius: 6,
+      marginBottom: 24
     },
     input: {
       height: 55,
       borderWidth: 2,
-      borderColor: colors.border,
+      borderColor: Colors.light.border,
       borderRadius: 16,
       paddingHorizontal: 20,
       marginBottom: 20,
       fontSize: 16,
-      backgroundColor: colors.cardBackground,
-      color: colors.text,
-      shadowColor: colors.accentBlue,
+      backgroundColor: Colors.light.cardBackground,
+      color: Colors.light.text,
+      shadowColor: Colors.light.accentBlue,
       shadowOffset: {
         width: 0,
         height: 2,
@@ -134,12 +197,12 @@ export default function RegisterScreen() {
     },
     button: {
       height: 55,
-      backgroundColor: colors.primary,
+      backgroundColor: Colors.light.primary,
       borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 30,
-      shadowColor: colors.primary,
+      shadowColor: Colors.light.primary,
       shadowOffset: {
         width: 0,
         height: 4,
@@ -154,7 +217,7 @@ export default function RegisterScreen() {
       opacity: 0.6,
     },
     buttonText: {
-      color: colors.textWhite,
+      color: Colors.light.textWhite,
       fontSize: 18,
       fontWeight: '700',
     },
@@ -162,75 +225,18 @@ export default function RegisterScreen() {
       alignItems: 'center',
     },
     linkText: {
-      color: colors.primary,
+      color: Colors.light.textWhite,
       fontSize: 16,
       fontWeight: '600',
+      padding: 7,
+      borderRadius: 5,
+      backgroundColor: 'black'
     },
     linkDisabled: {
       opacity: 0.5,
     },
+    backgroudimage: {
+      flex: 1,
+      resizeMode: 'cover'
+    }
   });
-
-  return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.form}>
-        <View style={styles.iconContainer}>
-          <FontAwesome name="user-plus" color={colors.primary} size={120} />
-          <Text style={styles.title}>Criar Conta</Text>
-        </View>
-
-        <TextInput
-          style={styles.input}
-          placeholder="E-mail"
-          placeholderTextColor={colors.mutedText}
-          value={email}
-          onChangeText={(text) => setEmail(text.trim())}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          editable={!loading}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Senha (mín. 6 caracteres, letras e números)"
-          placeholderTextColor={colors.mutedText}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="new-password"
-          editable={!loading}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Confirmar Senha"
-          placeholderTextColor={colors.mutedText}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          autoComplete="new-password"
-          editable={!loading}
-        />
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleRegister}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          {loading && <ActivityIndicator size="small" color={colors.textWhite} />}
-          <Text style={styles.buttonText}>{loading ? 'Criando conta...' : 'Criar Conta'}</Text>
-        </TouchableOpacity>
-
-        <View style={styles.links}>
-          <Link href="/(auth)/login" asChild>
-            <TouchableOpacity disabled={loading}>
-              <Text style={[styles.linkText, loading && styles.linkDisabled]}>Já tem conta? Entrar</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
-  );
-}
