@@ -1,4 +1,5 @@
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Colors from '../constants/Colors';
@@ -174,7 +175,7 @@ export default function TasksCard({
           <TouchableOpacity
             style={styles.createTaskButton}
             activeOpacity={0.6}
-            onPress={() => console.log('Navegar para criar tarefa')}
+            onPress={() => router.navigate('/(tabs)/AddTaskScreen')}
           >
             <MaterialCommunityIcons name="plus" size={20} color={Colors.light.textWhite} />
             <Text style={[styles.createTaskButtonText, { color: Colors.light.textWhite }]}>
