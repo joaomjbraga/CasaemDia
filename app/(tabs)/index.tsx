@@ -1,7 +1,6 @@
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFamilyMembers } from '@/contexts/FamilyMembersContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
@@ -28,8 +27,6 @@ interface CoupleStat {
 }
 
 export default function Dashboard() {
-  const { isDark, toggleTheme } = useTheme();
-  const theme = isDark ? Colors.dark : Colors.light;
   const { user, loading } = useAuth();
   const { familyMembers, fetchFamilyMembers, loading: familyMembersLoading } = useFamilyMembers();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -233,60 +230,48 @@ export default function Dashboard() {
 
   if (loading || tasksLoading || familyMembersLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <StatusBar
-          barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={theme.background}
-        />
+      <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.text }]}>Carregando...</Text>
+          <ActivityIndicator size="large" color={Colors.light.primary} />
+          <Text style={[styles.loadingText, { color: Colors.light.text }]}>Carregando...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundSecondary }]}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.background}
-      />
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.backgroundSecondary }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.light.background} />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <Header user={user} />
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScrollContainer}
         >
-          <Header
-            user={user}
-          />
-          <ScrollView
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScrollContainer}
-          >
-            <View style={styles.cardContainer}>
-              <BalanceCard isDark={isDark} theme={theme} />
-            </View>
-            <View style={styles.cardContainer}>
-              <RankingCard
-                coupleStats={coupleStats}
-                theme={theme}
-                isDark={isDark}
-              />
-            </View>
-          </ScrollView>
-          <TasksCard
-            tasks={tasks}
-            progressPercentage={progressPercentage}
-            completedTasks={completedTasks}
-            totalTasks={totalTasks}
-            toggleTask={toggleTask}
-            deleteTask={deleteTask}
-            onViewAll={handleViewAllTasks}
-          />
-          <QuickActions theme={theme} isDark={isDark} />
+          <View style={styles.cardContainer}>
+            <BalanceCard theme={Colors.light} />
+          </View>
+          <View style={styles.cardContainer}>
+            <RankingCard coupleStats={coupleStats} />
+          </View>
         </ScrollView>
+        <TasksCard
+          tasks={tasks}
+          progressPercentage={progressPercentage}
+          completedTasks={completedTasks}
+          totalTasks={totalTasks}
+          toggleTask={toggleTask}
+          deleteTask={deleteTask}
+          onViewAll={handleViewAllTasks}
+        />
+        <QuickActions />
+      </ScrollView>
     </SafeAreaView>
   );
 }

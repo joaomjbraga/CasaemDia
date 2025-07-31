@@ -1,24 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import TaskForm from '../../components/TaskForm';
 import Colors from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFamilyMembers } from '../../contexts/FamilyMembersContext';
 import { supabase } from '../../lib/supabase';
 
-type TabType = 'nova' | 'rapida' | 'template';
-
 export default function AddTaskScreen() {
   const { user } = useAuth();
   const { familyMembers } = useFamilyMembers();
-  const [activeTab, setActiveTab] = useState<TabType>('nova');
-
-  const tabs = [
-    { id: 'nova' as TabType, title: 'Nova Tarefa', icon: 'plus' },
-    { id: 'rapida' as TabType, title: 'Tarefa Rápida', icon: 'flash' },
-    { id: 'template' as TabType, title: 'Template', icon: 'content-copy' },
-  ];
 
   // Função para adicionar tarefa ao Supabase
   const addTask = async (title: string, assigneeId: number, points: number, due_date: string | null) => {
@@ -61,67 +52,28 @@ export default function AddTaskScreen() {
     }
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'nova':
-        return <TaskForm addTask={addTask} />;
-      case 'rapida':
-        return (
-          <View style={styles.tabContent}>
-            <Text style={[styles.contentText, { color: Colors.light.text }]}>
-              Criação rápida de tarefas com configurações padrão
-            </Text>
-          </View>
-        );
-      case 'template':
-        return (
-          <View style={styles.tabContent}>
-            <Text style={[styles.contentText, { color: Colors.light.text }]}>
-              Selecione um template de tarefa predefinido
-            </Text>
-          </View>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: Colors.light.background }]}>
       <View style={[styles.header, { backgroundColor: Colors.light.background }]}>
-        <Text style={[styles.headerTitle, { color: Colors.light.text }]}>Adicionar Tarefa</Text>
-        <Text style={[styles.headerSubtitle, { color: Colors.light.tabIconDefault }]}>
+        <View style={styles.headerIconContainer}>
+          <MaterialCommunityIcons
+            name="plus-circle"
+            size={36}
+            color={Colors.light.primary}
+          />
+        </View>
+        <Text style={[styles.headerTitle, { color: Colors.light.text }]}>Nova Tarefa</Text>
+        <Text style={[styles.headerSubtitle, { color: Colors.light.mutedText }]}>
           Organize suas tarefas domésticas
         </Text>
       </View>
 
-      <View style={[styles.tabsContainer, { backgroundColor: Colors.light.background }]}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[styles.tab, { backgroundColor: activeTab === tab.id ? Colors.light.tint : 'transparent' }]}
-            onPress={() => setActiveTab(tab.id)}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons
-              name={tab.icon as any}
-              size={20}
-              color={activeTab === tab.id ? Colors.light.background : Colors.light.tabIconDefault}
-            />
-            <Text
-              style={[styles.tabText, {
-                color: activeTab === tab.id ? Colors.light.background : Colors.light.tabIconDefault,
-                fontWeight: activeTab === tab.id ? '600' : '500',
-              }]}
-            >
-              {tab.title}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderTabContent()}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <TaskForm addTask={addTask} />
       </ScrollView>
     </View>
   );
@@ -130,68 +82,41 @@ export default function AddTaskScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
+    paddingTop: 70,
   },
   header: {
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingVertical: 28,
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
+    shadowColor: Colors.light.border,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  headerIconContainer: {
+    backgroundColor: Colors.light.backgroundSecondary + '90',
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 12,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    marginBottom: 8,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '500',
     opacity: 0.8,
     textAlign: 'center',
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 8,
-    borderRadius: 12,
-    padding: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    gap: 6,
-    marginHorizontal: 2,
-  },
-  tabText: {
-    fontSize: 13,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
   content: {
     flex: 1,
-    paddingTop: 16,
   },
-  tabContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  contentText: {
-    fontSize: 18,
-    textAlign: 'center',
-    opacity: 0.7,
-    lineHeight: 24,
+  contentContainer: {
+    paddingBottom: 32,
   },
 });

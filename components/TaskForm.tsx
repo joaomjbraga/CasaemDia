@@ -5,7 +5,6 @@ import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Colors from '../constants/Colors';
 import { useFamilyMembers } from '../contexts/FamilyMembersContext';
-import { useTheme } from '../contexts/ThemeContext';
 
 interface TaskFormProps {
   addTask?: (title: string, assignee_id: number, points: number, due_date: string | null) => Promise<void>;
@@ -17,7 +16,6 @@ const defaultAddTask = async (title: string, assignee_id: number, points: number
 };
 
 export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
-  const { isDark } = useTheme();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskAssigneeId, setNewTaskAssigneeId] = useState<number | null>(null);
   const [newTaskPoints, setNewTaskPoints] = useState('');
@@ -25,8 +23,6 @@ export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { familyMembers, loading, fetchFamilyMembers } = useFamilyMembers();
-
-  const colors = isDark ? Colors.dark : Colors.light;
 
   useEffect(() => {
     if (familyMembers.length > 0) {
@@ -102,22 +98,22 @@ export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
   };
 
   return (
-    <View style={[styles.taskForm, { backgroundColor: colors.background }]}>
+    <View style={[styles.taskForm, { backgroundColor: Colors.light.cardBackground }]}>
       <View style={styles.formHeader}>
-        <MaterialCommunityIcons name="plus-circle" size={24} color={colors.tint} />
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Nova Tarefa</Text>
+        <MaterialCommunityIcons name="plus-circle" size={26} color={Colors.light.primary} />
+        <Text style={[styles.sectionTitle, { color: Colors.light.text }]}>Nova Tarefa</Text>
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: colors.text }]}>Título *</Text>
+        <Text style={[styles.inputLabel, { color: Colors.light.text }]}>Título *</Text>
         <TextInput
           style={[styles.input, {
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-            color: colors.text,
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+            backgroundColor: Colors.light.backgroundSecondary + '90',
+            color: Colors.light.text,
+            borderColor: Colors.light.borderLight,
           }]}
           placeholder="Ex: Lavar a louça"
-          placeholderTextColor={colors.tabIconDefault}
+          placeholderTextColor={Colors.light.mutedText}
           value={newTaskTitle}
           onChangeText={setNewTaskTitle}
           editable={!isSubmitting}
@@ -125,15 +121,15 @@ export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: colors.text }]}>Responsável *</Text>
+        <Text style={[styles.inputLabel, { color: Colors.light.text }]}>Responsável *</Text>
         <View style={[styles.pickerContainer, {
-          backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-          borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+          backgroundColor: Colors.light.backgroundSecondary + '90',
+          borderColor: Colors.light.borderLight,
         }]}>
           <Picker
             selectedValue={newTaskAssigneeId}
             onValueChange={(itemValue) => setNewTaskAssigneeId(itemValue)}
-            style={[styles.picker, { color: colors.text }]}
+            style={[styles.picker, { color: Colors.light.text }]}
             enabled={!loading && !isSubmitting}
           >
             {familyMembers.length === 0 ? (
@@ -148,15 +144,15 @@ export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: colors.text }]}>Pontos *</Text>
+        <Text style={[styles.inputLabel, { color: Colors.light.text }]}>Pontos *</Text>
         <TextInput
           style={[styles.input, {
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-            color: colors.text,
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+            backgroundColor: Colors.light.backgroundSecondary + '90',
+            color: Colors.light.text,
+            borderColor: Colors.light.borderLight,
           }]}
           placeholder="Ex: 10"
-          placeholderTextColor={colors.tabIconDefault}
+          placeholderTextColor={Colors.light.mutedText}
           value={newTaskPoints}
           onChangeText={setNewTaskPoints}
           keyboardType="numeric"
@@ -165,23 +161,23 @@ export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: colors.text }]}>Data limite (opcional)</Text>
+        <Text style={[styles.inputLabel, { color: Colors.light.text }]}>Data limite (opcional)</Text>
         <TouchableOpacity
           style={[styles.dateButton, {
-            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+            backgroundColor: Colors.light.backgroundSecondary + '90',
+            borderColor: Colors.light.borderLight,
           }]}
           onPress={() => setShowDatePicker(true)}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
           disabled={isSubmitting}
         >
-          <MaterialCommunityIcons name="calendar" color={colors.tint} size={20} />
-          <Text style={[styles.dateButtonText, { color: newTaskDueDate ? colors.text : colors.tabIconDefault }]}>
+          <MaterialCommunityIcons name="calendar" color={Colors.light.primary} size={22} />
+          <Text style={[styles.dateButtonText, { color: newTaskDueDate ? Colors.light.text : Colors.light.mutedText }]}>
             {newTaskDueDate ? formatDate(newTaskDueDate) : 'Selecionar Data'}
           </Text>
           {newTaskDueDate && (
             <TouchableOpacity onPress={clearDate} style={styles.clearDateButton}>
-              <MaterialCommunityIcons name="close" color={colors.tabIconDefault} size={16} />
+              <MaterialCommunityIcons name="close" color={Colors.light.mutedText} size={18} />
             </TouchableOpacity>
           )}
         </TouchableOpacity>
@@ -199,37 +195,34 @@ export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[
-            styles.addTaskButton,
-            {
-              backgroundColor: isSubmitting ? colors.tabIconDefault : colors.tint,
-              opacity: isSubmitting ? 0.6 : 1
-            }
-          ]}
+          style={[styles.addTaskButton, {
+            backgroundColor: isSubmitting ? Colors.light.mutedText : Colors.light.primary,
+            opacity: isSubmitting ? 0.6 : 1,
+          }]}
           onPress={handleAddTask}
-          activeOpacity={0.8}
+          activeOpacity={0.6}
           disabled={isSubmitting}
         >
           <MaterialCommunityIcons
             name={isSubmitting ? "loading" : "check"}
-            color={colors.background}
-            size={20}
+            color={Colors.light.textWhite}
+            size={22}
           />
-          <Text style={[styles.addTaskText, { color: colors.background }]}>
+          <Text style={[styles.addTaskText, { color: Colors.light.textWhite }]}>
             {isSubmitting ? 'Criando...' : 'Criar Tarefa'}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.refreshButton, {
-            borderColor: colors.tabIconDefault,
-            backgroundColor: 'transparent'
+            borderColor: Colors.light.border,
+            backgroundColor: Colors.light.cardBackground,
           }]}
           onPress={fetchFamilyMembers}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
           disabled={loading || isSubmitting}
         >
-          <MaterialCommunityIcons name="refresh" color={colors.tabIconDefault} size={18} />
+          <MaterialCommunityIcons name="refresh" color={Colors.light.primary} size={20} />
         </TouchableOpacity>
       </View>
     </View>
@@ -238,45 +231,45 @@ export default function TaskForm({ addTask = defaultAddTask }: TaskFormProps) {
 
 const styles = StyleSheet.create({
   taskForm: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     padding: 24,
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
+    borderRadius: 20,
+    marginBottom: 24,
+    shadowColor: Colors.light.border,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 16,
+    elevation: 4,
   },
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
-    gap: 10,
+    gap: 12,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   inputLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 10,
     opacity: 0.9,
   },
   input: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     fontSize: 16,
-    borderWidth: 1,
     fontWeight: '500',
+    borderWidth: 1,
   },
   pickerContainer: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -287,7 +280,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     gap: 12,
   },
@@ -297,13 +290,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   clearDateButton: {
-    padding: 4,
+    padding: 6,
   },
   buttonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 8,
+    gap: 16,
+    marginTop: 12,
   },
   addTaskButton: {
     flex: 1,
@@ -312,13 +305,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#000',
+    borderRadius: 14,
+    gap: 10,
+    shadowColor: Colors.light.border,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   addTaskText: {
     fontWeight: '700',
@@ -326,11 +319,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   refreshButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    borderWidth: 1.5,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: Colors.light.border,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
 });

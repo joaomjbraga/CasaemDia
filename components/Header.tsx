@@ -113,7 +113,7 @@ export default function Header({ user }: HeaderProps) {
   }, [currentTime]);
 
   const getFamilyName = useCallback((): string => {
-    const userName = user?.user_metadata?.full_name || 'Casa';
+    const userName = user?.user_metadata?.full_name || 'Familia';
     return `${userName}`;
   }, [user?.user_metadata?.full_name]);
 

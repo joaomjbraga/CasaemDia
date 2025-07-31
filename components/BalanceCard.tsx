@@ -2,10 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, DimensionValue, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Colors from '../constants/Colors';
 import { handleSupabaseError, supabase } from '../lib/supabase';
 
 interface BalanceCardProps {
-  isDark: boolean;
   theme: any;
 }
 
@@ -20,7 +20,7 @@ interface BalanceData {
   monthly_budget: number;
 }
 
-export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
+export default function BalanceCard({ theme }: BalanceCardProps) {
   const [balance, setBalance] = useState<number>(0);
   const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
   const [expenses, setExpenses] = useState<number>(0);
@@ -35,11 +35,9 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     payer: ''
   });
 
-  // Ref para controlar se o componente está montado
   const isMountedRef = useRef(true);
   const subscriptionRef = useRef<any>(null);
 
-  // Função para formatar números brasileiros
   const formatCurrency = useCallback((value: number | string | null | undefined): string => {
     const numericValue = typeof value === 'string' ? parseFloat(value.replace(',', '.')) : value;
     if (numericValue == null || isNaN(numericValue)) {
@@ -50,7 +48,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     return `${numericValue < 0 ? '-' : ''}R$ ${formatted}`;
   }, []);
 
-  // Função para parsear valor monetário brasileiro
   const parseCurrencyValue = useCallback((value: string): number => {
     const cleanValue = value.replace(/[^\d,-]/g, '').replace(',', '.');
     const parsed = parseFloat(cleanValue);
@@ -58,7 +55,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     return isNaN(parsed) ? 0 : parsed;
   }, []);
 
-  // Obtém o ID do usuário autenticado
   const getUserId = useCallback(async (): Promise<string | null> => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -73,7 +69,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     }
   }, []);
 
-  // Inicializa saldo do usuário se não existir
   const initializeUserBalance = useCallback(async (userId: string) => {
     try {
       const { data: existingBalance, error: checkError } = await supabase
@@ -97,7 +92,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     }
   }, []);
 
-  // Função helper para atualizar ou criar saldo
   const updateOrCreateBalance = useCallback(async (userId: string, newBalance: number, budget: number) => {
     try {
       console.log('Atualizando saldo:', { userId, newBalance, budget });
@@ -117,7 +111,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     }
   }, []);
 
-  // Busca dados do Supabase
   const fetchData = useCallback(async (currentUserId: string) => {
     if (!currentUserId || !isMountedRef.current) {
       console.log('fetchData ignorado:', { currentUserId, isMounted: isMountedRef.current });
@@ -180,7 +173,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     }
   }, []);
 
-  // Adiciona uma nova despesa
   const addExpense = useCallback(async () => {
     if (!userId) {
       Alert.alert('Erro', 'Usuário não autenticado.');
@@ -231,18 +223,15 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     }
   }, [userId, newExpenseData, balance, monthlyBudget, fetchData, parseCurrencyValue]);
 
-  // Função para fechar modal
   const closeModal = useCallback(() => {
     setModalVisible(false);
     setNewExpenseData({ amount: '', description: '', payer: '' });
   }, []);
 
-  // Função para abrir modal
   const openModal = useCallback(() => {
     setModalVisible(true);
   }, []);
 
-  // Configura dados e assinaturas em tempo real
   useEffect(() => {
     const initialize = async () => {
       const id = await getUserId();
@@ -292,7 +281,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     };
   }, [getUserId, initializeUserBalance, fetchData]);
 
-  // Calcula o percentual do orçamento
   const progressData = useMemo(() => {
     if (!monthlyBudget || monthlyBudget <= 0) {
       return {
@@ -311,7 +299,6 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
     };
   }, [expenses, monthlyBudget]);
 
-  // Handlers para inputs do modal
   const handleAmountChange = useCallback((text: string) => {
     setNewExpenseData(prev => ({ ...prev, amount: text }));
   }, []);
@@ -327,10 +314,8 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={isDark ? '#FFFFFF' : '#000000'} />
-        <Text style={[styles.loadingText, { color: isDark ? '#FFFFFF' : '#000000' }]}>
-          Carregando...
-        </Text>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+        <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
   }
@@ -338,7 +323,7 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
   return (
     <>
       <LinearGradient
-        colors={isDark ? ['#6b7280', '#374151'] : ['#8B7355', '#6B5B73']}
+        colors={[Colors.light.gradientStart, Colors.light.gradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.balanceCard}
@@ -348,19 +333,14 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             <View style={styles.iconContainer}>
               <MaterialCommunityIcons
                 name="wallet"
-                color={isDark ? '#ffffff' : '#FFFFFF'}
+                color={Colors.light.iconPrimary}
                 size={24}
               />
             </View>
-            <Text style={[styles.balanceLabel, { color: isDark ? '#ffffff' : '#FFFFFF' }]}>
-              Saldo Conjunto
-            </Text>
+            <Text style={styles.balanceLabel}>Saldo Conjunto</Text>
           </View>
           <TouchableOpacity
-            style={[
-              styles.balanceAction,
-              { backgroundColor: isDark ? 'rgba(192, 192, 192, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
-            ]}
+            style={styles.balanceAction}
             onPress={openModal}
             disabled={isSubmitting}
             accessibilityLabel="Adicionar despesa"
@@ -368,36 +348,29 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
           >
             <MaterialCommunityIcons
               name="plus"
-              color={isDark ? '#f6f6f6' : '#FFFFFF'}
+              color={Colors.light.iconLight}
               size={20}
             />
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.balanceAmount, { color: isDark ? '#efefef' : '#FFFFFF' }]}>
+        <Text style={styles.balanceAmount}>
           {formatCurrency(monthlyBudget - expenses)}
         </Text>
 
         <View style={styles.balanceProgress}>
-          <View style={[
-            styles.progressBar,
-            { backgroundColor: isDark ? 'rgba(114, 114, 113, 0.3)' : 'rgba(147, 147, 147, 0.3)' }
-          ]}>
+          <View style={styles.progressBar}>
             <View style={[
               styles.progressFill,
               {
-                backgroundColor: progressData.isOverBudget ? '#ef4444' : (isDark ? '#fad6bb' : '#FFFFFF'),
+                backgroundColor: progressData.isOverBudget ? Colors.light.danger : Colors.light.progressBar,
                 width: `${progressData.percentage * 100}%` as DimensionValue
               }
             ]} />
           </View>
           <Text style={[
             styles.progressText,
-            {
-              color: progressData.isOverBudget
-                ? '#ef4444'
-                : (isDark ? 'rgba(238, 238, 238, 0.8)' : 'rgba(255, 255, 255, 0.8)')
-            }
+            { color: progressData.isOverBudget ? Colors.light.danger : Colors.light.text }
           ]}>
             {monthlyBudget === 0
               ? 'Orçamento não definido'
@@ -407,22 +380,12 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
           </Text>
         </View>
 
-        <View style={[
-          styles.balanceDetails,
-          { borderTopColor: isDark ? 'rgba(190, 190, 190, 0.3)' : 'rgba(255, 255, 255, 0.3)' }
-        ]}>
+        <View style={styles.balanceDetails}>
           <View style={styles.expenseRow}>
-            <Text style={[
-              styles.expenseLabel,
-              { color: isDark ? 'rgba(212, 212, 212, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
-            ]}>
-              Gastos do mês
-            </Text>
+            <Text style={styles.expenseLabel}>Gastos do mês</Text>
             <Text style={[
               styles.expenseAmount,
-              {
-                color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#979797' : '#FFFFFF')
-              }
+              { color: progressData.isOverBudget ? Colors.light.danger : Colors.light.text }
             ]}>
               {formatCurrency(expenses)}
             </Text>
@@ -430,17 +393,10 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
 
           {monthlyBudget > 0 && (
             <View style={styles.expenseRow}>
-              <Text style={[
-                styles.expenseLabel,
-                { color: isDark ? 'rgba(230, 230, 230, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
-              ]}>
-                Restante do orçamento
-              </Text>
+              <Text style={styles.expenseLabel}>Restante do orçamento</Text>
               <Text style={[
                 styles.expenseAmount,
-                {
-                  color: progressData.isOverBudget ? '#ef4444' : (isDark ? '#c1c1c1' : '#FFFFFF')
-                }
+                { color: progressData.isOverBudget ? Colors.light.danger : Colors.light.text }
               ]}>
                 {formatCurrency(monthlyBudget - expenses)}
               </Text>
@@ -449,24 +405,13 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
 
           {lastExpense ? (
             <View style={styles.lastExpenseRow}>
-              <View style={[
-                styles.expenseIndicator,
-                { backgroundColor: isDark ? '#f6c34b' : '#22c55e' }
-              ]} />
-              <Text style={[
-                styles.lastExpenseText,
-                { color: isDark ? 'rgba(242, 242, 242, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
-              ]}>
+              <View style={[styles.expenseIndicator, { backgroundColor: Colors.light.success }]} />
+              <Text style={styles.lastExpenseText}>
                 {lastExpense.payer} pagou {formatCurrency(lastExpense.amount)} - {lastExpense.description}
               </Text>
             </View>
           ) : (
-            <Text style={[
-              styles.noExpenseText,
-              { color: isDark ? 'rgba(242, 242, 242, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
-            ]}>
-              Nenhuma despesa registrada este mês.
-            </Text>
+            <Text style={styles.noExpenseText}>Nenhuma despesa registrada este mês.</Text>
           )}
         </View>
       </LinearGradient>
@@ -478,17 +423,12 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
         onRequestClose={closeModal}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#000000' }]}>
-              Adicionar Despesa
-            </Text>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Adicionar Despesa</Text>
             <TextInput
-              style={[
-                styles.input,
-                { borderColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#FFFFFF' : '#000000' }
-              ]}
+              style={styles.input}
               placeholder="Valor (ex.: 100,50)"
-              placeholderTextColor={isDark ? '#AAAAAA' : '#666666'}
+              placeholderTextColor={Colors.light.mutedText}
               keyboardType="decimal-pad"
               value={newExpenseData.amount}
               onChangeText={handleAmountChange}
@@ -496,24 +436,18 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
               accessibilityLabel="Valor da despesa"
             />
             <TextInput
-              style={[
-                styles.input,
-                { borderColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#FFFFFF' : '#000000' }
-              ]}
+              style={styles.input}
               placeholder="Descrição"
-              placeholderTextColor={isDark ? '#AAAAAA' : '#666666'}
+              placeholderTextColor={Colors.light.mutedText}
               value={newExpenseData.description}
               onChangeText={handleDescriptionChange}
               maxLength={100}
               accessibilityLabel="Descrição da despesa"
             />
             <TextInput
-              style={[
-                styles.input,
-                { borderColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#FFFFFF' : '#000000' }
-              ]}
+              style={styles.input}
               placeholder="Pagador"
-              placeholderTextColor={isDark ? '#AAAAAA' : '#666666'}
+              placeholderTextColor={Colors.light.mutedText}
               value={newExpenseData.payer}
               onChangeText={handlePayerChange}
               maxLength={50}
@@ -521,42 +455,26 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[
-                  styles.addButton,
-                  {
-                    backgroundColor: isDark ? '#77ac74' : '#2D6B5F',
-                    opacity: isSubmitting ? 0.6 : 1,
-                  }
-                ]}
+                style={[styles.addButton, { backgroundColor: Colors.light.buttonPrimary, opacity: isSubmitting ? 0.6 : 1 }]}
                 onPress={addExpense}
                 disabled={isSubmitting}
                 accessibilityLabel={isSubmitting ? 'Adicionando despesa' : 'Adicionar despesa'}
                 accessibilityRole="button"
               >
-                <Text style={[styles.buttonText, { color: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
-                  {isSubmitting ? 'Adicionando...' : 'Adicionar'}
-                </Text>
+                <Text style={styles.buttonText}>Adicionar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.cancelButton,
-                  {
-                    backgroundColor: isDark ? '#000000b8' : '#fd5b5b',
-                    opacity: isSubmitting ? 0.6 : 1,
-                  }
-                ]}
+                style={[styles.cancelButton, { backgroundColor: Colors.light.danger, opacity: isSubmitting ? 0.6 : 1 }]}
                 onPress={closeModal}
                 disabled={isSubmitting}
                 accessibilityLabel="Cancelar adição de despesa"
                 accessibilityRole="button"
               >
-                <Text style={[styles.buttonText, { color: isDark ? '#f8f8f8' : '#FFFFFF' }]}>
-                  Cancelar
-                </Text>
+                <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
             </View>
             {isSubmitting && (
-              <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : '#000000'} style={styles.submitIndicator} />
+              <ActivityIndicator size="small" color={Colors.light.primary} style={styles.submitIndicator} />
             )}
           </View>
         </View>
@@ -567,168 +485,182 @@ export default function BalanceCard({ isDark, theme }: BalanceCardProps) {
 
 const styles = StyleSheet.create({
   balanceCard: {
-    marginHorizontal: 12,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-    height: '100%', // Ocupar toda a altura do contêiner pai
+    marginHorizontal: 16,
+    padding: 20,
+    borderRadius: 20,
+    shadowColor: Colors.light.border,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 8,
     flex: 1,
   },
   balanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   balanceHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 8,
-    borderRadius: 10,
-    marginRight: 8,
+    backgroundColor: Colors.light.cardBackground,
+    padding: 10,
+    borderRadius: 12,
+    marginRight: 10,
   },
   balanceLabel: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.light.text,
   },
   balanceAction: {
-    padding: 6,
-    borderRadius: 6,
+    backgroundColor: Colors.light.buttonSecondary,
+    padding: 8,
+    borderRadius: 8,
   },
   balanceAmount: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    marginBottom: 12,
-  },
-  balanceProgress: {
+    color: Colors.light.text,
     marginBottom: 16,
   },
+  balanceProgress: {
+    marginBottom: 20,
+  },
   progressBar: {
-    height: 6,
-    borderRadius: 3,
+    height: 8,
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: Colors.light.progressBackground,
+    marginBottom: 10,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   progressText: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
+    fontWeight: '500',
   },
   balanceDetails: {
     borderTopWidth: 1,
-    paddingTop: 12,
-    flex: 1, // Ocupar o espaço restante
+    borderTopColor: Colors.light.borderLight,
+    paddingTop: 16,
+    flex: 1,
   },
   expenseRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   expenseLabel: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.light.mutedText,
   },
   expenseAmount: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
   },
   lastExpenseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   expenseIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
   },
   lastExpenseText: {
-    fontSize: 12,
+    fontSize: 13,
+    color: Colors.light.mutedText,
     flex: 1,
   },
   noExpenseText: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'center',
-    marginBottom: 8,
+    color: Colors.light.mutedText,
+    marginBottom: 12,
   },
   loadingContainer: {
-    marginHorizontal: 12,
-    padding: 16,
+    marginHorizontal: 16,
+    padding: 20,
     alignItems: 'center',
-    height: '100%',
+    flex: 1,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 10,
+    color: Colors.light.text,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContent: {
-    width: '85%',
+    width: '90%',
     maxWidth: 400,
-    padding: 16,
-    borderRadius: 12,
-    elevation: 5,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: Colors.light.cardBackground,
+    shadowColor: Colors.light.border,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 12,
+    color: Colors.light.text,
+    marginBottom: 16,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 8,
-    fontSize: 13,
+    borderColor: Colors.light.border,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 14,
+    color: Colors.light.text,
+    backgroundColor: Colors.light.background,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 12,
-    gap: 8,
+    marginTop: 16,
+    gap: 12,
   },
   addButton: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.textWhite,
   },
   submitIndicator: {
-    marginTop: 8,
+    marginTop: 12,
   },
 });

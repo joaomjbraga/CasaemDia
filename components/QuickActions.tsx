@@ -1,117 +1,92 @@
+import Colors from '@/constants/Colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from "expo-router";
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ConstructionModal from './ConstructionModal';
+
 const { width } = Dimensions.get('window');
 
 interface QuickActionsProps {
-  theme: {
-    text: string;
-    background: string;
-    tint: string;
-    tabIconDefault: string;
-    tabIconSelected: string;
-  };
-  isDark: boolean;
+  // Removida a prop theme e isDark, pois usaremos apenas Colors.light
 }
 
-export default function QuickActions({ theme, isDark }: QuickActionsProps) {
+export default function QuickActions({}: QuickActionsProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const openModal = () => setModalVisible(true);
   const closeModal = () => setModalVisible(false);
 
   return (
-    <View style={[styles.quickActions, { backgroundColor: theme.background }]}>
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+    <View style={[styles.quickActions, { backgroundColor: Colors.light.cardBackground }]}>
+      <Text style={[styles.sectionTitle, { color: Colors.light.text }]}>
         Ações Rápidas
       </Text>
 
       <View style={styles.quickActionsGrid}>
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/shoppinglist')}
-          style={[
-            styles.quickActionItem,
-            {
-              backgroundColor: isDark
-                ? 'rgba(255, 255, 255, 0.1)'
-                : 'rgba(0, 0, 0, 0.1)',
-            },
-          ]}
-          activeOpacity={0.7}
+          style={[styles.quickActionItem]}
+          activeOpacity={0.6}
         >
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name="cart-plus"
-              size={28}
-              color={theme.tint}
+              size={30}
+              color={Colors.light.primary}
             />
           </View>
-          <Text style={[styles.quickActionText, { color: theme.text }]}>
+          <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
             Lista de Compras
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={openModal}
-          style={[
-            styles.quickActionItem,
-            {
-              backgroundColor: isDark
-                ? 'rgba(255, 255, 255, 0.1)'
-                : 'rgba(0, 0, 0, 0.1)',
-            },
-          ]}
-          activeOpacity={0.7}
+          style={[styles.quickActionItem]}
+          activeOpacity={0.6}
         >
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name="target"
-              size={28}
-              color={theme.tint}
+              size={30}
+              color={Colors.light.primary}
             />
           </View>
-          <Text style={[styles.quickActionText, { color: theme.text }]}>
+          <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
             Metas
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/ExpenseReportScreen')}
-          style={[
-            styles.quickActionItem,
-            { backgroundColor: theme.tabIconSelected + '20' },
-          ]}
-          activeOpacity={0.7}
+          style={[styles.quickActionItem]}
+          activeOpacity={0.6}
         >
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name="chart-line"
-              size={28}
-              color={theme.tabIconSelected}
+              size={30}
+              color={Colors.light.primary}
             />
           </View>
-          <Text style={[styles.quickActionText, { color: theme.text }]}>
+          <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
             Relatórios
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.navigate('/_settings')}
-          style={[
-            styles.quickActionItem,
-            { backgroundColor: theme.tint + '20' },
-          ]}
-          activeOpacity={0.7}
+          style={[styles.quickActionItem]}
+          activeOpacity={0.6}
         >
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name="cog"
-              size={28}
-              color={theme.tint}
+              size={30}
+              color={Colors.light.primary}
             />
           </View>
-          <Text style={[styles.quickActionText, { color: theme.text }]}>
+          <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
             Configurações
           </Text>
         </TouchableOpacity>
@@ -124,47 +99,54 @@ export default function QuickActions({ theme, isDark }: QuickActionsProps) {
 
 const styles = StyleSheet.create({
   quickActions: {
-    marginHorizontal: 20,
-    marginVertical: 16,
-    padding: 20,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 20,
+    padding: 24,
+    borderRadius: 24,
+    shadowColor: Colors.light.border,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    letterSpacing: -0.3,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 20,
+    letterSpacing: -0.4,
   },
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 16,
   },
   quickActionItem: {
-    width: (width - 72) / 2,
-    paddingVertical: 20,
+    width: (width - 56) / 2, // Ajustado para melhor espaçamento
+    paddingVertical: 24,
     paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100,
-    maxHeight: 120,
+    backgroundColor: Colors.light.backgroundSecondary + '90', // Fundo com opacidade
+    borderWidth: 1,
+    borderColor: Colors.light.borderLight,
+    minHeight: 120,
+    transitionDuration: '200ms', // Para feedback visual suave (se suportado)
   },
   iconContainer: {
-    marginBottom: 8,
+    marginBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 8,
   },
   quickActionText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 18,
     flexShrink: 1,
   },
 });
