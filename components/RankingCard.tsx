@@ -136,11 +136,11 @@ const getIcon = (position: number) => {
 const getRankColor = (position: number) => {
   switch (position) {
     case 0:
-      return Colors.light.accentYellow;
-    case 1:
       return Colors.light.accentBlue;
+    case 1:
+      return '#1b1b1b';
     case 2:
-      return Colors.light.illustrationOrange;
+      return '#00a01b';
     default:
       return Colors.light.mutedText;
   }
