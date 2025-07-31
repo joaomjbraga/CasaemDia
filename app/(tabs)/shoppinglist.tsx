@@ -1,4 +1,5 @@
 // src/app/(tabs)/shoppinglist.tsx
+import FloatingCalculator from '@/components/Calculadora';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -462,6 +463,7 @@ export default function ShoppingList() {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
+      <FloatingCalculator />
     </SafeAreaView>
   );
 }
