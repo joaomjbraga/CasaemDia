@@ -8,37 +8,38 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 interface Message {
-  id: string;
+  id: string | number; // Suporte para tanto string quanto number
   user_id: string;
-  family_member_id: string;
+  family_member_id: string | number; // Pode ser string local ou number do banco
   content: string;
   created_at: string;
   sender_name: string;
 }
 
 interface FamilyMember {
-  id: string;
+  id: string | number; // Suporte para tanto string quanto number
   name: string;
 }
 
 export default function ChatScreen () {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [selectedFamilyMember, setSelectedFamilyMember] = useState<string>('');
+  const [selectedFamilyMember, setSelectedFamilyMember] = useState<string | number>('');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  // Mensagem inicial com resumo financeiro
+  // Mensagem inicial com avisos sobre funcionalidades automáticas
   const initialMessage: Message = {
     id: 'initial',
     user_id: 'system',
     family_member_id: 'system',
-    content: `Resumo Financeiro\n\nSaldo total: R$ -2.546,00\nOrçamento mensal: R$ 1.400,00\nDespesas totais: R$ 1.175,00\nÚltima despesa: Internet (R$ 60,00)\nPago por: Anne\nData: ${new Date('2025-07-30T06:03:38.887574+00:00').toLocaleDateString('pt-BR')}`,
+    content: `🤖 Avisos do Sistema\n\n💬 Este chat é para discussões sobre as finanças familiares\n\n⏰ As mensagens têm duração de 24 horas\n\n🗑️ Mensagens antigas são automaticamente removidas após 1 dia\n\n✨ Use este espaço para coordenar gastos, discutir orçamentos e organizar as finanças da família!`,
     created_at: new Date().toISOString(),
-    sender_name: 'Sistema Financeiro',
+    sender_name: 'Sistema Automático',
   };
 
   // Função para obter o nome do usuário selecionado
@@ -64,8 +65,8 @@ export default function ChatScreen () {
       }
 
       setFamilyMembers(data || []);
-      if (data.length > 0) {
-        setSelectedFamilyMember(data[0].id);
+      if (data && data.length > 0) {
+        setSelectedFamilyMember(data[0].id); // Usar o ID do banco diretamente
       }
     };
 
@@ -89,10 +90,12 @@ export default function ChatScreen () {
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (event) => {
       setKeyboardHeight(event.endCoordinates.height);
+      setIsTyping(true);
     });
 
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardHeight(0);
+      setIsTyping(false);
     });
 
     return () => {
@@ -124,9 +127,9 @@ export default function ChatScreen () {
           .single();
 
         return {
-          id: msg.id,
+          id: msg.id, // Manter como bigint do banco
           user_id: msg.user_id,
-          family_member_id: msg.family_member_id,
+          family_member_id: msg.family_member_id, // Manter como bigint do banco
           content: msg.content,
           created_at: msg.created_at,
           sender_name: familyError ? 'Usuário Desconhecido' : familyMember?.name || 'Usuário Desconhecido',
@@ -142,9 +145,8 @@ export default function ChatScreen () {
 
     const { error } = await supabase.from('messages').insert({
       user_id: user.id,
-      family_member_id: selectedFamilyMember,
+      family_member_id: selectedFamilyMember, // Usar o ID diretamente
       content: newMessage.trim(),
-      created_at: new Date().toISOString(),
     });
 
     if (error) {
@@ -155,8 +157,10 @@ export default function ChatScreen () {
     setNewMessage('');
   };
 
+
+
   const renderMessage = ({ item }: { item: Message }) => {
-    const isCurrentUser = item.family_member_id === selectedFamilyMember;
+    const isCurrentUser = String(item.family_member_id) === String(selectedFamilyMember);
     const isSystemMessage = item.user_id === 'system';
 
     return (
@@ -178,7 +182,7 @@ export default function ChatScreen () {
                 { backgroundColor: isSystemMessage ? Colors.light.illustrationCyan : Colors.light.illustrationPurple }
               ]}>
                 {isSystemMessage ? (
-                  <MaterialIcons name="smart-toy" size={16} color={Colors.light.textWhite} />
+                  <MaterialIcons name="smart-toy" size={18} color={Colors.light.textWhite} />
                 ) : (
                   <Text style={styles.avatarText}>
                     {item.sender_name.charAt(0).toUpperCase()}
@@ -186,6 +190,13 @@ export default function ChatScreen () {
                 )}
               </View>
               <Text style={styles.senderName}>{item.sender_name}</Text>
+            </View>
+          )}
+
+          {/* Indicador para mensagens enviadas pelo usuário atual */}
+          {isCurrentUser && (
+            <View style={styles.currentUserIndicator}>
+              <Text style={styles.currentUserText}>Você ({item.sender_name})</Text>
             </View>
           )}
 
@@ -203,12 +214,15 @@ export default function ChatScreen () {
             ]}>
               {item.content}
             </Text>
-            <Text style={[
-              styles.messageTime,
-              isCurrentUser ? styles.messageTimeSent : styles.messageTimeReceived
-            ]}>
-              {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
+
+            <View style={styles.messageFooter}>
+              <Text style={[
+                styles.messageTime,
+                isCurrentUser ? styles.messageTimeSent : styles.messageTimeReceived
+              ]}>
+                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -219,16 +233,21 @@ export default function ChatScreen () {
     <View style={styles.container}>
       {/* Header com gradiente */}
       <View style={styles.header}>
-        <View style={styles.headerTitleContainer}>
-          <Ionicons name="chatbubbles" size={20} color={Colors.light.textWhite} />
-          <Text style={styles.headerTitle}>Chat Familiar</Text>
+        <View style={styles.headerTop}>
+          <View style={styles.headerTitleContainer}>
+            <Ionicons name="chatbubbles" size={20} color={Colors.light.textWhite} />
+            <Text style={styles.headerTitle}>Chat Familiar</Text>
+          </View>
         </View>
+
         <Text style={styles.headerSubtitle}>Converse sobre as finanças da família</Text>
 
-        {/* Indicador do usuário selecionado */}
+        {/* Indicador do usuário selecionado melhorado */}
         <View style={styles.selectedUserContainer}>
-          <Ionicons name="person" size={14} color={Colors.light.textWhite} />
-          <Text style={styles.selectedUserText}>Enviando como: {getSelectedUserName()}</Text>
+          <View style={styles.selectedUserIndicator}>
+            <Ionicons name="person" size={16} color={Colors.light.textWhite} />
+            <Text style={styles.selectedUserText}>Enviando como: {getSelectedUserName()}</Text>
+          </View>
         </View>
       </View>
 
@@ -237,10 +256,13 @@ export default function ChatScreen () {
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)} // Converter para string
           contentContainerStyle={[
             styles.messageList,
-            { paddingBottom: keyboardHeight > 0 ? 20 : 80 }
+            {
+              paddingBottom: isTyping ? keyboardHeight + 100 : 100,
+              minHeight: '100%'
+            }
           ]}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
@@ -250,19 +272,31 @@ export default function ChatScreen () {
         {/* Input container moderno */}
         <View style={[
           styles.inputContainer,
+          {
+            backgroundColor: isTyping ? Colors.light.cardBackground : Colors.light.backgroundSecondary,
+            borderTopWidth: isTyping ? 2 : 1,
+            borderTopColor: isTyping ? Colors.light.primary : Colors.light.borderLight,
+          },
           Platform.OS === 'ios' && keyboardHeight > 0 && {
             marginBottom: keyboardHeight - insets.bottom
           }
         ]}>
-          <View style={styles.inputWrapper}>
+          <View style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: isTyping ? Colors.light.backgroundSecondary : Colors.light.cardBackground,
+              borderWidth: isTyping ? 2 : 1,
+              borderColor: isTyping ? Colors.light.primary : Colors.light.borderLight,
+            }
+          ]}>
             {/* Picker personalizado */}
             <View style={styles.pickerContainer}>
-              <Ionicons name="person" size={16} color={Colors.light.text} />
+              <Ionicons name="person" size={16} color={Colors.light.primary} />
               <Picker
                 style={styles.picker}
                 selectedValue={selectedFamilyMember}
                 onValueChange={(itemValue) => setSelectedFamilyMember(itemValue)}
-                dropdownIconColor={Colors.light.text}
+                dropdownIconColor={Colors.light.primary}
               >
                 <Picker.Item label="Selecione..." value="" />
                 {familyMembers.map((member) => (
@@ -273,7 +307,10 @@ export default function ChatScreen () {
 
             {/* Input de mensagem */}
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                { borderColor: isTyping ? Colors.light.primary : 'transparent' }
+              ]}
               value={newMessage}
               onChangeText={setNewMessage}
               placeholder="Digite sua mensagem..."
@@ -283,7 +320,7 @@ export default function ChatScreen () {
               onFocus={() => {
                 setTimeout(() => {
                   flatListRef.current?.scrollToEnd({ animated: true });
-                }, 100);
+                }, 200);
               }}
             />
 
@@ -291,12 +328,15 @@ export default function ChatScreen () {
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                { opacity: (!selectedFamilyMember || !newMessage.trim()) ? 0.5 : 1 }
+                {
+                  opacity: (!selectedFamilyMember || !newMessage.trim()) ? 0.5 : 1,
+                  transform: [{ scale: isTyping ? 1.1 : 1 }]
+                }
               ]}
               onPress={sendMessage}
               disabled={!selectedFamilyMember || !newMessage.trim()}
             >
-              <Ionicons name="send" size={16} color={Colors.light.textWhite} />
+              <Ionicons name="send" size={18} color={Colors.light.textWhite} />
             </TouchableOpacity>
           </View>
         </View>
@@ -313,21 +353,27 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.light.primary,
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    marginBottom: 4,
   },
   headerTitle: {
     fontSize: 20,
@@ -336,41 +382,43 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.light.textWhite,
     opacity: 0.9,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   selectedUserContainer: {
+    alignItems: 'center',
+  },
+  selectedUserIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   selectedUserText: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.light.textWhite,
-    marginLeft: 4,
-    fontWeight: '500',
+    marginLeft: 6,
+    fontWeight: '600',
   },
   chatContainer: {
     flex: 1,
   },
   messageList: {
-    padding: 12,
-    paddingBottom: 16,
-    flexGrow: 1,
+    padding: 16,
+    paddingTop: 20,
   },
   messageWrapper: {
-    marginVertical: 4,
+    marginVertical: 6,
   },
   messageContainer: {
-    maxWidth: '80%',
+    maxWidth: '85%',
   },
   messageSent: {
     alignSelf: 'flex-end',
@@ -385,52 +433,84 @@ const styles = StyleSheet.create({
   senderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  avatarContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.textWhite,
-  },
-  senderName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  messageBubble: {
+    marginBottom: 8,
+    backgroundColor: Colors.light.cardBackground,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
-    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
+  currentUserIndicator: {
+    alignSelf: 'flex-end',
+    backgroundColor: Colors.light.cardBackground,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  currentUserText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.light.primary,
+  },
+  avatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.textWhite,
+  },
+  senderName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  messageBubble: {
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+  },
   bubbleSent: {
     backgroundColor: Colors.light.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 6,
   },
   bubbleReceived: {
     backgroundColor: Colors.light.cardBackground,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: 6,
     borderWidth: 1,
     borderColor: Colors.light.borderLight,
   },
   bubbleSystem: {
     backgroundColor: Colors.light.accentBlue,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   messageText: {
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   messageTextSent: {
     color: Colors.light.textWhite,
@@ -438,10 +518,12 @@ const styles = StyleSheet.create({
   messageTextReceived: {
     color: Colors.light.text,
   },
+  messageFooter: {
+    marginTop: 6,
+  },
   messageTime: {
     fontSize: 10,
-    marginTop: 4,
-    alignSelf: 'flex-end',
+    fontWeight: '500',
   },
   messageTimeSent: {
     color: Colors.light.textWhite,
@@ -455,71 +537,73 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.light.backgroundSecondary,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: Colors.light.cardBackground,
-    borderRadius: 20,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    borderRadius: 24,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   pickerContainer: {
-    backgroundColor: Colors.light.cardBackground,
-    borderRadius: 16,
-    marginRight: 6,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 18,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: Colors.light.borderLight,
-    minWidth: 90,
-    maxWidth: 120,
+    minWidth: 100,
+    maxWidth: 130,
     justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 8,
+    paddingLeft: 10,
   },
   picker: {
     flex: 1,
-    height: 36,
+    height: 40,
     color: Colors.light.text,
     backgroundColor: 'transparent',
     fontSize: 13,
+    fontWeight: '500',
   },
   input: {
     flex: 1,
     fontSize: 15,
     color: Colors.light.text,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    maxHeight: 80,
-    minHeight: 36,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    maxHeight: 100,
+    minHeight: 40,
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 18,
+    borderWidth: 1,
   },
   sendButton: {
     backgroundColor: Colors.light.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 6,
+    marginLeft: 8,
     shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
   },
 });
