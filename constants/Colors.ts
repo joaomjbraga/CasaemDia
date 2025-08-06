@@ -1,11 +1,6 @@
-// /constants/Colors.ts
-
-const tintColorLight = '#A259FF'; // Roxo primário (ícones e elementos principais)
-const tintColorDark = '#A259FF';
-
+const tintColorLight = '#A259FF';
 export default {
   light: {
-    // Cores principais do background
     background: '#E6FBFF',         // Fundo principal azul claro
     backgroundSecondary: '#B8F2FF', // Fundo secundário azul mais intenso
 
@@ -60,55 +55,5 @@ export default {
     // Gradientes (caso precise)
     gradientStart: '#E6FBFF',      // Início do gradiente
     gradientEnd: '#B8F2FF',        // Fim do gradiente
-  },
-  dark: {
-    // Mantendo o tema escuro similar, mas ajustado
-    background: '#1A1A1A',         // Fundo escuro
-    backgroundSecondary: '#2A2A2A', // Fundo secundário
-
-    text: '#FFFFFF',               // Texto branco
-    textWhite: '#FFFFFF',          // Texto branco
-    textSecondary: '#E0E0E0',      // Texto secundário
-    mutedText: '#9E9E9E',          // Texto esmaecido
-
-    primary: tintColorDark,        // Roxo primário
-    tint: tintColorDark,           // Para compatibilidade com código existente
-    secondary: '#FF6F61',          // Coral
-
-    // Adaptações das cores ilustrativas para tema escuro
-    illustrationPurple: '#9D6FD1',
-    illustrationPink: '#FF79C6',
-    illustrationCyan: '#50FAFF',
-    illustrationYellow: '#FFEB3B',
-    illustrationOrange: '#FF9800',
-    illustrationTeal: '#4DB6AC',
-
-    cardBackground: '#2A2A2A',     // Cartões escuros
-    cardDark: '#1E1E1E',           // Cartões mais escuros
-    cardDarkSecondary: '#121212',   // Cartões ainda mais escuros
-
-    accentBlue: '#00C2FF',
-    accentCyan: '#40E0D0',
-    accentYellow: '#FFC300',
-
-    border: '#333333',
-    borderLight: '#404040',
-    success: '#30D158',
-    danger: '#FF453A',
-    warning: '#FF9F0A',
-
-    progressBar: '#00C2FF',
-    progressBackground: '#1A3A4A',
-    buttonPrimary: '#A259FF',
-    buttonSecondary: '#40E0D0',
-
-    iconPrimary: '#A259FF',
-    iconSecondary: '#00C2FF',
-    iconLight: '#FFFFFF',
-    tabIconDefault: '#6B7280',     // Ícones de tab padrão para tema escuro
-    tabIconSelected: tintColorDark, // Ícones de tab selecionados
-
-    gradientStart: '#1A1A1A',
-    gradientEnd: '#2A2A2A',
-  },
+  }
 };
