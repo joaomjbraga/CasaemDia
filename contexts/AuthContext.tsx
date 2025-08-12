@@ -7,8 +7,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   initialized: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data?: any; error: any; success: boolean }>;
+  signUp: (email: string, password: string) => Promise<{ data?: any; error: any; success: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
 }
@@ -64,6 +64,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email || 'no user');
+
         if (isMounted) {
           setSession(session);
           setUser(session?.user ?? null);
@@ -86,21 +88,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log('Tentando fazer login com:', email);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
 
       if (error) {
-        console.error('Erro no login:', error);
-        return { error };
+        console.error('Erro no login do Supabase:', error.message);
+        return {
+          error,
+          success: false,
+          data: null
+        };
       }
 
-      console.log('Login realizado com sucesso:', data.user?.email);
-      return { error: null };
+      // Verificar se realmente temos um usuário autenticado
+      if (!data.user || !data.session) {
+        console.error('Login falhou: Nenhum usuário ou sessão retornado');
+        return {
+          error: { message: 'Falha na autenticação. Usuário não encontrado.' },
+          success: false,
+          data: null
+        };
+      }
+
+      // Verificar se o e-mail do usuário corresponde ao que foi digitado
+      if (data.user.email?.toLowerCase() !== email.trim().toLowerCase()) {
+        console.error('Login falhou: E-mail não corresponde');
+        return {
+          error: { message: 'Erro na autenticação. E-mail não corresponde.' },
+          success: false,
+          data: null
+        };
+      }
+
+      console.log('Login realizado com sucesso:', data.user.email);
+
+      // Forçar atualização do estado local
+      setSession(data.session);
+      setUser(data.user);
+
+      return {
+        error: null,
+        success: true,
+        data
+      };
     } catch (error) {
       console.error('Erro inesperado no login:', error);
-      return { error };
+      return {
+        error,
+        success: false,
+        data: null
+      };
     } finally {
       setLoading(false);
     }
@@ -109,6 +150,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log('Tentando criar conta com:', email);
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -118,23 +161,70 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('Erro no registro:', error);
-        return { error };
+        console.error('Erro no registro do Supabase:', error.message);
+        return {
+          error,
+          success: false,
+          data: null
+        };
       }
 
-      // Login automático após registro, já que confirmação de e-mail está desativada
-      if (data.user) {
-        await supabase.auth.signInWithPassword({
+      // Verificar se o usuário foi criado
+      if (!data.user) {
+        console.error('Registro falhou: Nenhum usuário criado');
+        return {
+          error: { message: 'Falha ao criar conta. Tente novamente.' },
+          success: false,
+          data: null
+        };
+      }
+
+      console.log('Registro realizado:', data.user.email);
+
+      // Se o usuário foi criado mas não está logado automaticamente, fazer login
+      if (!data.session) {
+        console.log('Fazendo login automático após registro...');
+        const loginResult = await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
           password,
         });
+
+        if (loginResult.error) {
+          console.error('Erro no login automático:', loginResult.error);
+          return {
+            error: loginResult.error,
+            success: false,
+            data: null
+          };
+        }
+
+        // Atualizar dados com a sessão do login
+        setSession(loginResult.data.session);
+        setUser(loginResult.data.user);
+
+        return {
+          error: null,
+          success: true,
+          data: loginResult.data
+        };
       }
 
-      console.log('Registro realizado:', data.user?.email);
-      return { error: null };
+      // Se já veio com sessão, atualizar o estado
+      setSession(data.session);
+      setUser(data.user);
+
+      return {
+        error: null,
+        success: true,
+        data
+      };
     } catch (error) {
       console.error('Erro inesperado no registro:', error);
-      return { error };
+      return {
+        error,
+        success: false,
+        data: null
+      };
     } finally {
       setLoading(false);
     }
@@ -149,6 +239,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Erro no logout:', error);
         throw error;
       }
+
+      // Limpar estado local imediatamente
+      setSession(null);
+      setUser(null);
+
       console.log('Logout realizado com sucesso');
     } catch (error) {
       console.error('Erro inesperado no logout:', error);

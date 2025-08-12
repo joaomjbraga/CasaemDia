@@ -3,7 +3,7 @@ import { FamilyMembersProvider } from '@/contexts/FamilyMembersContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -48,21 +48,54 @@ export default function RootLayout() {
   );
 }
 
-function RootLayoutNav() {
-  const { user, loading, initialized } = useAuth();
-  const [lastNavigation, setLastNavigation] = useState<string | null>(null);
+function useProtectedRoute() {
+  const segments = useSegments();
+  const { user, session, initialized } = useAuth();
 
   useEffect(() => {
-    if (!initialized || loading) return;
+    if (!initialized) return;
 
-    const targetRoute = user ? '/(tabs)' : '/(auth)/login';
-    if (lastNavigation !== targetRoute) {
-      setLastNavigation(targetRoute);
-      router.replace(targetRoute);
+    const inAuthGroup = segments[0] === '(auth)';
+    const isAuthenticated = user && session && user.email;
+
+    console.log('Route protection check:', {
+      segments: segments.join('/'),
+      inAuthGroup,
+      isAuthenticated,
+      userEmail: user?.email
+    });
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // User is not authenticated but trying to access protected route
+      console.log('Redirecting unauthenticated user to login');
+      router.replace('/(auth)/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      // User is authenticated but on auth screen
+      console.log('Redirecting authenticated user to tabs');
+      router.replace('/(tabs)');
     }
-  }, [user, initialized, loading]);
+  }, [user, session, initialized, segments]);
+}
 
-  if (!initialized || loading) {
+function RootLayoutNav() {
+  const { user, session, loading, initialized } = useAuth();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useProtectedRoute();
+
+  useEffect(() => {
+    if (initialized && !loading) {
+      // Small delay to prevent flash
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [initialized, loading]);
+
+  // Show loading screen during initialization
+  if (!initialized || loading || isInitialLoad) {
     return (
       <SafeAreaProvider>
         <NavigationThemeProvider value={DefaultTheme}>
@@ -100,9 +133,10 @@ function RootLayoutNav() {
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: 'none',
+            animation: 'slide_from_right',
           }}
         >
+          {/* Protected routes - only accessible when authenticated */}
           <Stack.Screen
             name="(tabs)"
             options={{
@@ -110,6 +144,8 @@ function RootLayoutNav() {
               gestureEnabled: false,
             }}
           />
+
+          {/* Auth routes - only accessible when not authenticated */}
           <Stack.Screen
             name="(auth)/login"
             options={{
@@ -124,18 +160,14 @@ function RootLayoutNav() {
               gestureEnabled: false,
             }}
           />
-          <Stack.Screen
-            name="(auth)/forgot"
-            options={{
-              headerShown: false,
-              gestureEnabled: false,
-            }}
-          />
+
+          {/* Settings can be accessed by authenticated users */}
           <Stack.Screen
             name="settings"
             options={{
               headerShown: false,
-              gestureEnabled: false,
+              gestureEnabled: true,
+              presentation: 'modal',
             }}
           />
         </Stack>
