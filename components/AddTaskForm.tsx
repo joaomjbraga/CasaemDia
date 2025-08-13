@@ -395,6 +395,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 20,
+    paddingBottom: 30
   },
   button: {
     flex: 1,

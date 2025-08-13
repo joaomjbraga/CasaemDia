@@ -11,7 +11,7 @@ interface QuickActionsProps {
   // Removida a prop theme e isDark, pois usaremos apenas Colors.light
 }
 
-export default function QuickActions({}: QuickActionsProps) {
+export default function QuickActions({ }: QuickActionsProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const openModal = () => setModalVisible(true);
   const closeModal = () => setModalVisible(false);
@@ -71,6 +71,23 @@ export default function QuickActions({}: QuickActionsProps) {
           </View>
           <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
             Relatórios
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.navigate('/EstoqueScreen')}
+          style={[styles.quickActionItem]}
+          activeOpacity={0.6}
+        >
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="food"
+              size={30}
+              color={Colors.light.primary}
+            />
+          </View>
+          <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
+            Estoque da Casa
           </Text>
         </TouchableOpacity>
 

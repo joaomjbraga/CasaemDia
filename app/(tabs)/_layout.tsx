@@ -123,6 +123,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="ExpenseReportScreen" options={{ href: null }} />
+      <Tabs.Screen name="EstoqueScreen" options={{ href: null }} />
       <Tabs.Screen name="EventDetailsScreen" options={{ href: null }} />
       <Tabs.Screen name="(stack)" options={{ href: null }} />
 

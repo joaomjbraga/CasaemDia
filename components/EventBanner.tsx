@@ -30,14 +30,25 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
       // Subscription para atualizações em tempo real
       const subscription = supabase
         .channel('events_banner')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'events',
-          filter: `user_id=eq.${userId}`
-        }, () => {
-          fetchNextEvent();
-        })
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'events',
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            if (payload.eventType === 'DELETE' && nextEvent?.id === payload.old.id) {
+              // Se o evento excluído é o atualmente exibido, limpar ou buscar próximo
+              setNextEvent(null);
+              fetchNextEvent();
+            } else {
+              // Para outros eventos (INSERT, UPDATE), recarregar o próximo evento
+              fetchNextEvent();
+            }
+          }
+        )
         .subscribe();
 
       return () => {
@@ -63,7 +74,8 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 = no rows found
         throw new Error('Erro ao buscar próximo evento: ' + error.message);
       }
 
@@ -168,7 +180,7 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
     } else {
       // Se não há próximo evento, navegar para a tela de eventos sem ID específico
       try {
-        (navigation as any).navigate('EventDetails');
+        (navigation as any).navigate('EventDetailsScreen');
       } catch (error) {
         console.log('Erro na navegação:', error);
       }
@@ -191,18 +203,14 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
             backgroundColor: colors.cardBackground,
             borderLeftColor: colors.mutedText,
             borderColor: colors.borderLight,
-          }
+          },
         ]}
         onPress={handleBannerPress}
         activeOpacity={0.8}
       >
         <View style={styles.bannerContent}>
           <View style={[styles.iconContainer, { backgroundColor: colors.mutedText + '15' }]}>
-            <MaterialCommunityIcons
-              name="calendar-plus"
-              size={24}
-              color={colors.mutedText}
-            />
+            <MaterialCommunityIcons name="calendar-plus" size={24} color={colors.mutedText} />
           </View>
 
           <View style={styles.eventInfo}>
@@ -215,11 +223,7 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
           </View>
 
           <View style={styles.arrowContainer}>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={20}
-              color={colors.mutedText}
-            />
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.mutedText} />
           </View>
         </View>
       </TouchableOpacity>
@@ -239,7 +243,7 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
           borderLeftColor: eventColor,
           borderColor: colors.borderLight,
           shadowColor: colors.illustrationPurple,
-        }
+        },
       ]}
       onPress={handleBannerPress}
       activeOpacity={0.8}
@@ -288,12 +292,22 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
                 {formatEventDateTime(nextEvent.event_time)}
               </Text>
             </View>
-            <View style={[styles.timeUntilBadge, {
-              backgroundColor: isUrgent ? colors.illustrationOrange + '20' : colors.accentCyan + '20'
-            }]}>
-              <Text style={[styles.timeUntil, {
-                color: isUrgent ? colors.illustrationOrange : colors.accentCyan
-              }]}>
+            <View
+              style={[
+                styles.timeUntilBadge,
+                {
+                  backgroundColor: isUrgent ? colors.illustrationOrange + '20' : colors.accentCyan + '20',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.timeUntil,
+                  {
+                    color: isUrgent ? colors.illustrationOrange : colors.accentCyan,
+                  },
+                ]}
+              >
                 {timeUntil}
               </Text>
             </View>
@@ -301,11 +315,7 @@ const EventBanner = ({ userId, onEventPress }: EventBannerProps) => {
         </View>
 
         <View style={styles.arrowContainer}>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color={eventColor}
-          />
+          <MaterialCommunityIcons name="chevron-right" size={20} color={eventColor} />
         </View>
       </View>
     </TouchableOpacity>

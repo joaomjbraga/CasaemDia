@@ -2,37 +2,38 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Modal from 'react-native-modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 interface Message {
-  id: string | number; // Suporte para tanto string quanto number
+  id: string | number;
   user_id: string;
-  family_member_id: string | number; // Pode ser string local ou number do banco
+  family_member_id: string | number;
   content: string;
   created_at: string;
   sender_name: string;
 }
 
 interface FamilyMember {
-  id: string | number; // Suporte para tanto string quanto number
+  id: string | number;
   name: string;
 }
 
-export default function ChatScreen () {
+export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedFamilyMember, setSelectedFamilyMember] = useState<string | number>('');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
-  // Mensagem inicial com avisos sobre funcionalidades automáticas
   const initialMessage: Message = {
     id: 'initial',
     user_id: 'system',
@@ -42,13 +43,11 @@ export default function ChatScreen () {
     sender_name: 'Sistema Automático',
   };
 
-  // Função para obter o nome do usuário selecionado
   const getSelectedUserName = () => {
     const selectedMember = familyMembers.find(member => member.id === selectedFamilyMember);
     return selectedMember ? selectedMember.name : 'Nenhum usuário selecionado';
   };
 
-  // Carregar membros da família
   useEffect(() => {
     if (!user) return;
 
@@ -66,7 +65,9 @@ export default function ChatScreen () {
 
       setFamilyMembers(data || []);
       if (data && data.length > 0) {
-        setSelectedFamilyMember(data[0].id); // Usar o ID do banco diretamente
+        setIsModalVisible(true); // Mostrar modal apenas após carregar os membros
+      } else {
+        setIsModalVisible(false); // Evitar modal se não houver membros
       }
     };
 
@@ -86,7 +87,6 @@ export default function ChatScreen () {
     };
   }, [user]);
 
-  // Listener para o teclado
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (event) => {
       setKeyboardHeight(event.endCoordinates.height);
@@ -127,9 +127,9 @@ export default function ChatScreen () {
           .single();
 
         return {
-          id: msg.id, // Manter como bigint do banco
+          id: msg.id,
           user_id: msg.user_id,
-          family_member_id: msg.family_member_id, // Manter como bigint do banco
+          family_member_id: msg.family_member_id,
           content: msg.content,
           created_at: msg.created_at,
           sender_name: familyError ? 'Usuário Desconhecido' : familyMember?.name || 'Usuário Desconhecido',
@@ -140,12 +140,17 @@ export default function ChatScreen () {
     setMessages([initialMessage, ...formattedMessages]);
   };
 
-  const sendMessage = async () => {
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !user || !selectedFamilyMember) return;
+    confirmSendMessage(); // Enviar diretamente sem modal de confirmação
+  };
+
+  const confirmSendMessage = async () => {
     if (!newMessage.trim() || !user || !selectedFamilyMember) return;
 
     const { error } = await supabase.from('messages').insert({
       user_id: user.id,
-      family_member_id: selectedFamilyMember, // Usar o ID diretamente
+      family_member_id: selectedFamilyMember,
       content: newMessage.trim(),
     });
 
@@ -157,7 +162,11 @@ export default function ChatScreen () {
     setNewMessage('');
   };
 
-
+  const confirmSenderSelection = () => {
+    if (selectedFamilyMember) {
+      setIsModalVisible(false);
+    }
+  };
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isCurrentUser = String(item.family_member_id) === String(selectedFamilyMember);
@@ -193,7 +202,6 @@ export default function ChatScreen () {
             </View>
           )}
 
-          {/* Indicador para mensagens enviadas pelo usuário atual */}
           {isCurrentUser && (
             <View style={styles.currentUserIndicator}>
               <Text style={styles.currentUserText}>Você ({item.sender_name})</Text>
@@ -231,7 +239,6 @@ export default function ChatScreen () {
 
   return (
     <View style={styles.container}>
-      {/* Header com gradiente */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.headerTitleContainer}>
@@ -242,7 +249,6 @@ export default function ChatScreen () {
 
         <Text style={styles.headerSubtitle}>Converse sobre as finanças da família</Text>
 
-        {/* Indicador do usuário selecionado melhorado */}
         <View style={styles.selectedUserContainer}>
           <View style={styles.selectedUserIndicator}>
             <Ionicons name="person" size={16} color={Colors.light.textWhite} />
@@ -256,7 +262,7 @@ export default function ChatScreen () {
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item) => String(item.id)} // Converter para string
+          keyExtractor={(item) => String(item.id)}
           contentContainerStyle={[
             styles.messageList,
             {
@@ -269,7 +275,54 @@ export default function ChatScreen () {
           keyboardShouldPersistTaps="handled"
         />
 
-        {/* Input container moderno */}
+        <Modal
+          isVisible={isModalVisible}
+          onBackdropPress={() => { }}
+          backdropOpacity={0.3}
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          style={styles.modal}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Selecione o Remetente</Text>
+            <Text style={styles.modalText}>
+              Escolha quem você é para usar o chat:
+            </Text>
+            <View style={styles.modalPickerContainer}>
+              <Ionicons name="person" size={16} color={Colors.light.primary} />
+              <Picker
+                style={styles.modalPicker}
+                selectedValue={selectedFamilyMember}
+                onValueChange={(itemValue) => setSelectedFamilyMember(itemValue)}
+                itemStyle={styles.pickerItem}
+                mode="dropdown" // Forçar modo dropdown para melhor controle
+              >
+                {familyMembers.length > 0 ? (
+                  familyMembers.map((member) => (
+                    <Picker.Item
+                      key={member.id}
+                      label={member.name}
+                      value={member.id}
+                      style={styles.pickerItem}
+                    />
+                  ))
+                ) : (
+                  <Picker.Item label="Nenhum membro disponível" value="" />
+                )}
+              </Picker>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={confirmSenderSelection}
+                disabled={!selectedFamilyMember}
+              >
+                <Text style={styles.modalButtonText}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
         <View style={[
           styles.inputContainer,
           {
@@ -287,9 +340,9 @@ export default function ChatScreen () {
               backgroundColor: isTyping ? Colors.light.backgroundSecondary : Colors.light.cardBackground,
               borderWidth: isTyping ? 2 : 1,
               borderColor: isTyping ? Colors.light.primary : Colors.light.borderLight,
+              opacity: !selectedFamilyMember ? 0.5 : 1,
             }
           ]}>
-            {/* Picker personalizado */}
             <View style={styles.pickerContainer}>
               <Ionicons name="person" size={16} color={Colors.light.primary} />
               <Picker
@@ -297,15 +350,22 @@ export default function ChatScreen () {
                 selectedValue={selectedFamilyMember}
                 onValueChange={(itemValue) => setSelectedFamilyMember(itemValue)}
                 dropdownIconColor={Colors.light.primary}
+                enabled={false}
+                itemStyle={styles.pickerItem}
+                mode="dropdown"
               >
                 <Picker.Item label="Selecione..." value="" />
                 {familyMembers.map((member) => (
-                  <Picker.Item key={member.id} label={member.name} value={member.id} />
+                  <Picker.Item
+                    key={member.id}
+                    label={member.name}
+                    value={member.id}
+                    style={styles.pickerItem}
+                  />
                 ))}
               </Picker>
             </View>
 
-            {/* Input de mensagem */}
             <TextInput
               style={[
                 styles.input,
@@ -317,6 +377,7 @@ export default function ChatScreen () {
               placeholderTextColor={Colors.light.mutedText}
               multiline
               maxLength={500}
+              editable={!!selectedFamilyMember}
               onFocus={() => {
                 setTimeout(() => {
                   flatListRef.current?.scrollToEnd({ animated: true });
@@ -324,7 +385,6 @@ export default function ChatScreen () {
               }}
             />
 
-            {/* Botão de enviar moderno */}
             <TouchableOpacity
               style={[
                 styles.sendButton,
@@ -333,7 +393,7 @@ export default function ChatScreen () {
                   transform: [{ scale: isTyping ? 1.1 : 1 }]
                 }
               ]}
-              onPress={sendMessage}
+              onPress={handleSendMessage}
               disabled={!selectedFamilyMember || !newMessage.trim()}
             >
               <Ionicons name="send" size={18} color={Colors.light.textWhite} />
@@ -343,7 +403,7 @@ export default function ChatScreen () {
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -566,7 +626,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.borderLight,
     minWidth: 100,
-    maxWidth: 130,
+    maxWidth: 150,
     justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
@@ -605,5 +665,78 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 6,
+  },
+  modal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  modalContent: {
+    backgroundColor: Colors.light.cardBackground,
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    alignItems: 'center',
+    maxHeight: '70%', // Limitar altura máxima para evitar sobreposição
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    color: Colors.light.text,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalBoldText: {
+    fontWeight: '700',
+    color: Colors.light.primary,
+  },
+  modalPickerContainer: {
+    backgroundColor: Colors.light.backgroundSecondary,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.light.borderLight,
+    width: '95%', // Aumentado para suportar nomes mais longos
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
+    marginBottom: 20,
+  },
+  modalPicker: {
+    flex: 1,
+    height: 70,
+    color: Colors.light.text,
+    backgroundColor: 'transparent',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  pickerItem: {
+    fontSize: 14,
+    color: Colors.light.text,
+    paddingHorizontal: 10, // Adicionar padding para evitar corte
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '80%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 8,
+    maxWidth: 150,
+  },
+  confirmButton: {
+    backgroundColor: Colors.light.primary,
+  },
+  modalButtonText: {
+    color: Colors.light.textWhite,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

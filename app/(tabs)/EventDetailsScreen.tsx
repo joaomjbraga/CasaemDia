@@ -56,8 +56,9 @@ const EventDetailsScreen = () => {
           event: '*',
           schema: 'public',
           table: 'events',
-          filter: `user_id=eq.${user.id}`
-        }, () => {
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          // Atualiza a lista de eventos quando há mudanças
           fetchEvents();
         })
         .subscribe();
@@ -122,17 +123,20 @@ const EventDetailsScreen = () => {
                 throw new Error('Erro ao excluir evento: ' + error.message);
               }
 
-              Alert.alert('Sucesso', 'Compromisso excluído com sucesso!');
+              // Atualiza o estado local removendo o evento excluído
+              setEvents((prevEvents) => prevEvents.filter((e) => e.id !== event.id));
 
-              // Se o evento excluído era o selecionado, limpar a seleção
+              // Limpa a seleção se o evento excluído era o selecionado
               if (selectedEvent?.id === event.id) {
                 setSelectedEvent(null);
               }
+
+              Alert.alert('Sucesso', 'Compromisso excluído com sucesso!');
             } catch (err: unknown) {
               Alert.alert('Erro', handleSupabaseError(err, 'deleteEvent'));
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -252,7 +256,7 @@ const EventDetailsScreen = () => {
             borderLeftColor: eventColor,
             borderColor: isSelected ? eventColor : colors.borderLight,
             borderWidth: isSelected ? 2 : 1,
-          }
+          },
         ]}
         onPress={() => setSelectedEvent(item)}
         activeOpacity={0.7}
@@ -289,26 +293,30 @@ const EventDetailsScreen = () => {
           </View>
         </View>
 
-        <View style={[
-          styles.timeUntilBadgeSmall,
-          {
-            backgroundColor: timeInfo.isPast
-              ? colors.mutedText + '20'
-              : isUrgent
-                ? colors.illustrationOrange + '20'
-                : colors.accentCyan + '20'
-          }
-        ]}>
-          <Text style={[
-            styles.timeUntilTextSmall,
+        <View
+          style={[
+            styles.timeUntilBadgeSmall,
             {
-              color: timeInfo.isPast
-                ? colors.mutedText
+              backgroundColor: timeInfo.isPast
+                ? colors.mutedText + '20'
                 : isUrgent
-                  ? colors.illustrationOrange
-                  : colors.accentCyan
-            }
-          ]}>
+                  ? colors.illustrationOrange + '20'
+                  : colors.accentCyan + '20',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.timeUntilTextSmall,
+              {
+                color: timeInfo.isPast
+                  ? colors.mutedText
+                  : isUrgent
+                    ? colors.illustrationOrange
+                    : colors.accentCyan,
+              },
+            ]}
+          >
             {timeInfo.text}
           </Text>
         </View>
@@ -361,37 +369,35 @@ const EventDetailsScreen = () => {
             </View>
           </View>
 
-          <View style={[
-            styles.timeUntilBadge,
-            {
-              backgroundColor: timeInfo.isPast
-                ? colors.mutedText + '20'
-                : isUrgent
-                  ? colors.illustrationOrange + '20'
-                  : colors.accentCyan + '20'
-            }
-          ]}>
-            <MaterialCommunityIcons
-              name={timeInfo.isPast ? "clock-alert" : "clock-outline"}
-              size={16}
-              color={
-                timeInfo.isPast
-                  ? colors.mutedText
-                  : isUrgent
-                    ? colors.illustrationOrange
-                    : colors.accentCyan
-              }
-            />
-            <Text style={[
-              styles.timeUntilText,
+          <View
+            style={[
+              styles.timeUntilBadge,
               {
-                color: timeInfo.isPast
-                  ? colors.mutedText
+                backgroundColor: timeInfo.isPast
+                  ? colors.mutedText + '20'
                   : isUrgent
-                    ? colors.illustrationOrange
-                    : colors.accentCyan
-              }
-            ]}>
+                    ? colors.illustrationOrange + '20'
+                    : colors.accentCyan + '20',
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={timeInfo.isPast ? 'clock-alert' : 'clock-outline'}
+              size={16}
+              color={timeInfo.isPast ? colors.mutedText : isUrgent ? colors.illustrationOrange : colors.accentCyan}
+            />
+            <Text
+              style={[
+                styles.timeUntilText,
+                {
+                  color: timeInfo.isPast
+                    ? colors.mutedText
+                    : isUrgent
+                      ? colors.illustrationOrange
+                      : colors.accentCyan,
+                },
+              ]}
+            >
               {timeInfo.text}
             </Text>
           </View>
@@ -458,7 +464,7 @@ const EventDetailsScreen = () => {
       <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => router.navigate("/(tabs)")}
+          onPress={() => router.navigate('/(tabs)')}
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -561,7 +567,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    marginTop: 50,
+    paddingTop: 70,
     shadowColor: '#8B5FBF',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

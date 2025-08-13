@@ -250,8 +250,6 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
       >
         <Header user={user} />
-
-        {/* Event Banner - Agora navega automaticamente para EventDetailsScreen */}
         {user && (
           <EventBanner userId={user.id} />
         )}
