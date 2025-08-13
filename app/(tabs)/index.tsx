@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import BalanceCard from '../../components/BalanceCard';
+import EventBanner from '../../components/EventBanner';
 import Header from '../../components/Header';
 import QuickActions from '../../components/QuickActions';
 import RankingCard from '../../components/RankingCard';
@@ -249,6 +250,12 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
       >
         <Header user={user} />
+
+        {/* Event Banner - Agora navega automaticamente para EventDetailsScreen */}
+        {user && (
+          <EventBanner userId={user.id} />
+        )}
+
         <ScrollView
           horizontal={true}
           showsHorizontalScrollIndicator={false}
@@ -268,7 +275,6 @@ export default function Dashboard() {
           totalTasks={totalTasks}
           toggleTask={toggleTask}
           deleteTask={deleteTask}
-          onViewAll={handleViewAllTasks}
         />
         <QuickActions />
       </ScrollView>

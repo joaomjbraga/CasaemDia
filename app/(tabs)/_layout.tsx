@@ -73,15 +73,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ExpenseReportScreen"
+        name="AddTaskScreen"
         options={{
-          title: 'Relatórios',
+          title: 'Tarefas',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <TabBarIcon name="account-cash" color={color} size={24} />
+              <TabBarIcon name="list-status" color={color} size={24} />
             </View>
           ),
-          tabBarLabel: 'Relatórios',
+          tabBarLabel: 'Tarefas',
         }}
       />
       <Tabs.Screen
@@ -99,15 +99,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="AddTaskScreen"
+        name="CalenderScreen"
         options={{
-          title: 'Tarefas',
+          title: 'Agenda',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIconContainer]}>
-              <TabBarIcon name="list-status" color={color} size={24} />
+              <TabBarIcon name="calendar" color={color} size={24} />
             </View>
           ),
-          tabBarLabel: 'Tarefas',
+          tabBarLabel: 'Agenda',
         }}
       />
       <Tabs.Screen
@@ -122,7 +122,10 @@ export default function TabLayout() {
           tabBarLabel: 'Chat',
         }}
       />
+      <Tabs.Screen name="ExpenseReportScreen" options={{ href: null }} />
+      <Tabs.Screen name="EventDetailsScreen" options={{ href: null }} />
       <Tabs.Screen name="(stack)" options={{ href: null }} />
+
     </Tabs>
   );
 }
