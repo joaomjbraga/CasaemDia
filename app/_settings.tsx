@@ -21,20 +21,19 @@ import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
 
-
 export default function SettingsScreen() {
-
   const [monthlyBudget, setMonthlyBudget] = useState<string>('0,00');
   const [newMemberName, setNewMemberName] = useState<string>('');
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const [budgetLoading, setBudgetLoading] = useState<boolean>(true);
   const [deletingMember, setDeletingMember] = useState<number | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState<boolean>(false);
   const {
     familyMembers,
     loading: memberLoading,
     addFamilyMember,
     deleteFamilyMember,
-    fetchFamilyMembers
+    fetchFamilyMembers,
   } = useFamilyMembers();
   const router = useRouter();
   const { user } = useAuth();
@@ -68,7 +67,6 @@ export default function SettingsScreen() {
         setMonthlyBudget(formattedBudget);
         console.log('Settings: Current budget:', formattedBudget);
       } else {
-        // Create initial balance record
         console.log('Settings: Creating initial balance record');
         const { error: insertError } = await supabase
           .from('balances')
@@ -137,23 +135,21 @@ export default function SettingsScreen() {
       await addFamilyMember(newMemberName.trim());
       setNewMemberName('');
     } catch (error) {
-      // Error is already handled in the context
       console.error('Settings: Error adding member:', error);
     }
   };
 
-  // Função de deletar membro corrigida com base na estrutura real do banco
   const handleDeleteMember = async (memberId: number, memberName: string) => {
     console.log('🗑️ Settings: Attempting to delete member:', {
       memberId,
       memberName,
       userId: user?.id,
-      currentMembersCount: familyMembers.length
+      currentMembersCount: familyMembers.length,
     });
 
     Alert.alert(
       'Confirmar Remoção',
-      `Tem certeza que deseja remover "${memberName}" da família? Esta ação não pode ser desfeita.`,
+      `Tem certeza que deseja remover "${memberName}" da família ? Esta ação não pode ser desfeita.`,
       [
         { text: 'Cancelar', style: 'cancel', onPress: () => console.log('❌ Delete cancelled by user') },
         {
@@ -170,13 +166,12 @@ export default function SettingsScreen() {
                 throw new Error('Usuário não autenticado');
               }
 
-              // Verificar se o membro tem tarefas associadas (pela coluna 'assignee' que é text)
               console.log(`🔍 Checking if member "${memberName}" has associated tasks...`);
 
               const { data: tasksData, error: tasksCheckError } = await supabase
                 .from('tasks')
                 .select('id, title')
-                .eq('assignee', memberName) // Usa o nome como string, não ID
+                .eq('assignee', memberName)
                 .eq('user_id', user.id);
 
               if (tasksCheckError) {
@@ -188,8 +183,8 @@ export default function SettingsScreen() {
                 console.log('⚠️ Member has associated tasks:', tasksData);
                 Alert.alert(
                   'Não é Possível Remover',
-                  `${memberName} tem ${tasksData.length} tarefa(s) associada(s):\n\n` +
-                  tasksData.map(task => `• ${task.title}`).join('\n') +
+                  `${memberName} tem ${tasksData.length} tarefa(s) associada(s): \n\n` +
+                  tasksData.map(task => `• ${task.title} `).join('\n') +
                   '\n\nRemova ou reatribua as tarefas primeiro.',
                   [{ text: 'OK' }]
                 );
@@ -198,12 +193,26 @@ export default function SettingsScreen() {
 
               console.log('✅ No tasks found for this member, proceeding with deletion...');
 
-              // Deletar o membro
+              // Verificar e excluir mensagens associadas ao membro
+              console.log(`🔍 Checking if member "${memberName}" has associated messages...`);
+              const { error: messagesDeleteError } = await supabase
+                .from('messages')
+                .delete()
+                .eq('family_member_id', memberId)
+                .eq('user_id', user.id);
+
+              if (messagesDeleteError) {
+                console.error('❌ Error deleting messages for member:', messagesDeleteError);
+                throw new Error('Erro ao excluir mensagens associadas: ' + messagesDeleteError.message);
+              }
+
+              console.log('✅ Messages deleted successfully, proceeding with member deletion...');
+
               const { error: deleteError } = await supabase
                 .from('family_members')
                 .delete()
                 .eq('id', memberId)
-                .eq('user_id', user.id); // Adiciona segurança extra
+                .eq('user_id', user.id);
 
               if (deleteError) {
                 console.error('❌ Error deleting member:', deleteError);
@@ -212,28 +221,23 @@ export default function SettingsScreen() {
 
               console.log('✅ Member deleted successfully from database');
 
-              // Atualizar a lista local forçando um refresh
               console.log('🔄 Refreshing family members list...');
               await fetchFamilyMembers();
 
-              // Mostrar mensagem de sucesso
               Alert.alert('Sucesso', `${memberName} foi removido da família.`);
-
             } catch (error: any) {
               console.error('❌ Settings: Error deleting member:', {
                 error: error,
                 message: error?.message,
                 code: error?.code,
                 details: error?.details,
-                hint: error?.hint
+                hint: error?.hint,
               });
 
-              // Mostra mensagem de erro específica
               let errorMessage = error?.message || 'Erro desconhecido ao remover membro';
-
               Alert.alert(
                 'Erro ao Remover Membro',
-                `Não foi possível remover "${memberName}".\n\nDetalhes: ${errorMessage}`
+                `Não foi possível remover "${memberName}".\n\nDetalhes: ${errorMessage} `
               );
             } finally {
               console.log('🔚 Settings: Finishing delete process, resetting loading state');
@@ -245,14 +249,160 @@ export default function SettingsScreen() {
     );
   };
 
-  const formatBudgetInput = (text: string) => {
-    // Remove non-numeric characters except comma
-    const cleaned = text.replace(/[^0-9,]/g, '');
+  const handleDeleteAccount = async () => {
+    if (!user || !user.id) {
+      console.error('❌ No authenticated user found');
+      Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
+      return;
+    }
 
-    // Ensure only one comma and max 2 decimal places
+    Alert.alert(
+      'Excluir Conta',
+      'Tem certeza que deseja excluir sua conta? Esta ação é irreversível e removerá todos os seus dados, incluindo orçamento, eventos, despesas, membros da família, inventário, mensagens, listas de compras e tarefas.',
+      [
+        { text: 'Cancelar', style: 'cancel', onPress: () => console.log('❌ Account deletion cancelled by user') },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            console.log('✅ User confirmed account deletion, starting process for user ID:', user.id);
+            try {
+              setDeletingAccount(true);
+
+              // Verificar se há registros nas tabelas antes de excluir
+              const tablesToCheck = [
+                'messages',
+                'tasks',
+                'shopping_list',
+                'inventory',
+                'expenses',
+                'events',
+                'family_members',
+                'balances',
+              ];
+
+              for (const table of tablesToCheck) {
+                console.log(`🔍 Checking records in ${table} for user ID: ${user.id} `);
+                const { data, error } = await supabase
+                  .from(table)
+                  .select('id')
+                  .eq('user_id', user.id)
+                  .limit(10);
+
+                if (error) {
+                  console.error(`❌ Error checking records in ${table}: `, error);
+                  throw new Error(`Erro ao verificar registros em ${table}: ${error.message} `);
+                }
+
+                if (data && data.length > 0) {
+                  console.log(`ℹ️ Found ${data.length} records in ${table}: `, data);
+                } else {
+                  console.log(`✅ No records found in ${table} `);
+                }
+              }
+
+              // Ordem ajustada para respeitar dependências de chaves estrangeiras
+              const tables = [
+                'messages', // Excluir mensagens primeiro devido à dependência com family_members
+                'tasks',
+                'shopping_list',
+                'inventory',
+                'expenses',
+                'events',
+                'family_members', // family_members depois de messages
+                'balances',
+              ];
+
+              // Executar exclusões com verificação reforçada
+              for (const table of tables) {
+                console.log(`🗑️ Attempting to delete records from ${table} for user ID: ${user.id} `);
+                const { data, error } = await supabase
+                  .from(table)
+                  .delete()
+                  .eq('user_id', user.id)
+                  .select('id'); // Retorna os IDs dos registros excluídos
+
+                if (error) {
+                  console.error(`❌ Error deleting from ${table}: `, error);
+                  let errorMessage = error.message;
+                  if (error.code === '42501') {
+                    errorMessage = `Permissão negada para excluir registros em ${table}.Verifique as políticas de RLS.`;
+                  } else if (error.code === '23503') {
+                    errorMessage = `Não foi possível excluir dados de ${table} devido a referências em outras tabelas.`;
+                  }
+                  throw new Error(`Erro ao excluir dados de ${table}: ${errorMessage} `);
+                }
+
+                console.log(`✅ Deleted ${data?.length || 0} records from ${table} `, data);
+              }
+
+              // Verificação final para mensagens residuais
+              console.log('🔍 Final check for residual messages...');
+              const { data: postDeleteMessages, error: postDeleteError } = await supabase
+                .from('messages')
+                .select('id, content, family_member_id')
+                .eq('user_id', user.id);
+
+              if (postDeleteError) {
+                console.error('❌ Error checking post-deletion messages:', postDeleteError);
+                throw new Error('Erro ao verificar mensagens após exclusão: ' + postDeleteError.message);
+              }
+
+              if (postDeleteMessages && postDeleteMessages.length > 0) {
+                console.log('⚠️ Found residual messages after deletion attempt:', postDeleteMessages);
+                const messageDetails = postDeleteMessages.map(msg => `• ID: ${msg.id}, Conteúdo: ${msg.content} `).join('\n');
+                throw new Error(
+                  `Erro: ${postDeleteMessages.length} mensagem(s) ainda presentes após tentativa de exclusão: \n\n` +
+                  messageDetails +
+                  '\n\nPor favor, contate o suporte.'
+                );
+              }
+
+              // Excluir a conta do usuário na autenticação do Supabase
+              console.log('🔄 Signing out before deleting user account...');
+              const { error: authError } = await supabase.auth.signOut();
+              if (authError) {
+                console.error('❌ Error signing out before account deletion:', authError);
+                throw authError;
+              }
+
+              // Chamar função de administração para excluir o usuário
+              console.log('🔄 Calling admin function to delete user account...');
+              const { error: adminError } = await supabase.rpc('delete_user', { user_id: user.id });
+
+              if (adminError) {
+                console.error('❌ Error deleting user account:', adminError);
+                throw new Error('Erro ao excluir conta do usuário: ' + adminError.message);
+              }
+
+              console.log('✅ User account deleted successfully');
+              Alert.alert('Sucesso', 'Sua conta foi excluída com sucesso.');
+              router.replace('/(auth)/login');
+            } catch (error: any) {
+              console.error('❌ Settings: Error deleting account:', {
+                error: error,
+                message: error?.message,
+                code: error?.code,
+                details: error?.details,
+                hint: error?.hint,
+              });
+              let errorMessage = error?.message || 'Erro desconhecido ao excluir a conta';
+              Alert.alert('Erro', `Falha ao excluir conta: ${errorMessage} `);
+            } finally {
+              console.log('🔚 Settings: Finishing account deletion process');
+              setDeletingAccount(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const formatBudgetInput = (text: string) => {
+    const cleaned = text.replace(/[^0-9,]/g, '');
     const parts = cleaned.split(',');
     if (parts.length > 2) {
-      return monthlyBudget; // Return previous value if invalid
+      return monthlyBudget;
     }
 
     if (parts[1] && parts[1].length > 2) {
@@ -287,7 +437,6 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header simples */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -297,11 +446,9 @@ export default function SettingsScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Configurações</Text>
-
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Finance Section */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.categoryTitle, { color: colors.text }]}>Finanças</Text>
           <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
@@ -311,7 +458,6 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.sectionTextContainer}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Orçamento Mensal</Text>
-
                 <View style={styles.inputGroup}>
                   {budgetLoading ? (
                     <View style={[styles.loadingInput, { backgroundColor: colors.progressBackground }]}>
@@ -333,12 +479,11 @@ export default function SettingsScreen() {
                     </View>
                   )}
                 </View>
-
                 <TouchableOpacity
                   style={[
                     styles.primaryButton,
                     { backgroundColor: colors.primary },
-                    (saveLoading || budgetLoading) && { opacity: 0.6 }
+                    (saveLoading || budgetLoading) && { opacity: 0.6 },
                   ]}
                   onPress={updateBalance}
                   disabled={saveLoading || budgetLoading}
@@ -359,11 +504,8 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Family Members Section */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.categoryTitle, { color: colors.text }]}>Membros da Família</Text>
-
-          {/* Add Member */}
           <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.sectionContent}>
               <View style={[styles.iconContainer, { backgroundColor: colors.illustrationPurple + '20' }]}>
@@ -384,12 +526,11 @@ export default function SettingsScreen() {
                     />
                   </View>
                 </View>
-
                 <TouchableOpacity
                   style={[
                     styles.secondaryButton,
                     { backgroundColor: colors.buttonSecondary },
-                    (memberLoading || !newMemberName.trim()) && { opacity: 0.6 }
+                    (memberLoading || !newMemberName.trim()) && { opacity: 0.6 },
                   ]}
                   onPress={handleAddMember}
                   disabled={memberLoading || !newMemberName.trim()}
@@ -409,7 +550,6 @@ export default function SettingsScreen() {
             <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
           </View>
 
-          {/* Members List */}
           {memberLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -440,10 +580,10 @@ export default function SettingsScreen() {
                   onPress={() => handleDeleteMember(member.id, member.name)}
                   style={[
                     styles.actionButton,
-                    deletingMember === member.id && { opacity: 0.6 }
+                    deletingMember === member.id && { opacity: 0.6 },
                   ]}
                   disabled={deletingMember === member.id}
-                  accessibilityLabel={`Remover ${member.name}`}
+                  accessibilityLabel={`Remover ${member.name} `}
                 >
                   {deletingMember === member.id ? (
                     <ActivityIndicator size={20} color={colors.danger} />
@@ -456,11 +596,8 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        {/* Account Section */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.categoryTitle, { color: colors.text }]}>Conta</Text>
-
-          {/* User Info */}
           {user && (
             <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
               <View style={styles.sectionContent}>
@@ -475,8 +612,6 @@ export default function SettingsScreen() {
               <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
             </View>
           )}
-
-          {/* Sign Out */}
           <TouchableOpacity
             style={[styles.section, { backgroundColor: colors.cardBackground }]}
             onPress={handleSignOut}
@@ -491,6 +626,26 @@ export default function SettingsScreen() {
               </View>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.section, { backgroundColor: colors.cardBackground }]}
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            activeOpacity={0.8}
+          >
+            <View style={styles.sectionContent}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.danger + '20' }]}>
+                <MaterialCommunityIcons name="account-cancel" size={24} color={colors.danger} />
+              </View>
+              <View style={styles.sectionTextContainer}>
+                <Text style={[styles.sectionTitle, { color: colors.danger }]}>Excluir Conta</Text>
+              </View>
+            </View>
+            {deletingAccount ? (
+              <ActivityIndicator size={20} color={colors.danger} />
+            ) : (
+              <MaterialCommunityIcons name="chevron-right" size={24} color={colors.mutedText} />
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -519,7 +674,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
   },
-
   content: {
     flexGrow: 1,
     paddingBottom: 32,

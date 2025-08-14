@@ -3,6 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -15,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AddButton from '../../components/AddButtonStoque';
 import Colors from '../../constants/Colors';
 import { supabase } from '../../lib/supabase';
 
@@ -53,6 +55,7 @@ export default function InventoryScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [showOnlyRestock, setShowOnlyRestock] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Form states
   const [form, setForm] = useState({
@@ -68,13 +71,26 @@ export default function InventoryScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
-    loadInventory();
+    const checkAuth = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        setErrorMessage('Usuário não autenticado. Redirecionando para login...');
+        Alert.alert('Erro', 'Usuário não autenticado. Redirecionando para login...');
+        // Adicione navegação para a tela de login aqui, se aplicável
+        return;
+      }
+      loadInventory();
+    };
+    checkAuth();
 
     // Monitorar estado de autenticação
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Evento de autenticação:', event, 'Sessão:', session);
       if (!session) {
+        setErrorMessage('Sessão expirada. Faça login novamente.');
         Alert.alert('Erro', 'Sessão expirada. Faça login novamente.');
+      } else {
+        loadInventory();
       }
     });
 
@@ -89,10 +105,14 @@ export default function InventoryScreen() {
 
   const loadInventory = async () => {
     try {
+      setLoading(true);
+      setErrorMessage(null);
+
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       console.log('Usuário autenticado:', user?.id);
       if (authError || !user) {
-        Alert.alert('Erro', 'Usuário não autenticado');
+        setErrorMessage('Usuário não autenticado. Verifique sua sessão.');
+        Alert.alert('Erro', 'Usuário não autenticado. Verifique sua sessão.');
         return;
       }
 
@@ -102,12 +122,20 @@ export default function InventoryScreen() {
         .eq('user_id', user.id)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao consultar inventory:', error);
+        throw error;
+      }
 
+      console.log('Dados retornados do Supabase:', data);
       setItems(data || []);
+      if (data && data.length === 0) {
+        setErrorMessage('Nenhum item encontrado no estoque para este usuário.');
+      }
     } catch (error: any) {
       console.error('Erro ao carregar estoque:', error);
-      Alert.alert('Erro', 'Não foi possível carregar o estoque');
+      setErrorMessage(`Erro ao carregar o estoque: ${error.message}`);
+      Alert.alert('Erro', `Não foi possível carregar o estoque: ${error.message}`);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -132,6 +160,7 @@ export default function InventoryScreen() {
       );
     }
 
+    console.log('Itens filtrados:', filtered);
     setFilteredItems(filtered);
   };
 
@@ -181,7 +210,7 @@ export default function InventoryScreen() {
   const saveItem = async () => {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      console.log('Usuário autenticado:', user?.id);
+      console.log('Usuário autenticado para salvar:', user?.id);
       if (authError || !user) {
         console.error('Erro de autenticação:', authError);
         Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
@@ -209,6 +238,8 @@ export default function InventoryScreen() {
         updated_at: new Date().toISOString(),
       };
 
+      console.log('Dados enviados para o Supabase:', itemData);
+
       // Atualização otimista
       let previousItems = [...items];
       let tempId: number | null = null;
@@ -219,7 +250,7 @@ export default function InventoryScreen() {
             : item
         ));
       } else {
-        tempId = Date.now(); // Usar timestamp como ID temporário
+        tempId = Date.now();
         setItems([...items, { ...itemData, id: tempId, needs_restock: currentQuantity <= minimumQuantity }]);
       }
 
@@ -239,7 +270,6 @@ export default function InventoryScreen() {
           .single();
         error = insertError;
         if (data && tempId) {
-          // Atualizar o ID temporário com o ID real retornado pelo Supabase
           setItems(items =>
             items.map(item =>
               item.id === tempId ? { ...item, id: data.id, needs_restock: data.needs_restock } : item
@@ -249,13 +279,12 @@ export default function InventoryScreen() {
       }
 
       if (error) {
-        // Reverter a atualização otimista
         setItems(previousItems);
         console.error('Erro do Supabase:', error);
         throw error;
       }
 
-      // Recarregar os dados para sincronizar needs_restock
+      // Recarregar para sincronizar needs_restock
       await loadInventory();
 
       closeModal();
@@ -280,18 +309,22 @@ export default function InventoryScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Atualização otimista
               const previousItems = [...items];
               setItems(items.filter(item => item.id !== id));
+
+              const { data: { user }, error: authError } = await supabase.auth.getUser();
+              if (authError || !user) {
+                setItems(previousItems);
+                throw new Error('Usuário não autenticado.');
+              }
 
               const { error } = await supabase
                 .from('inventory')
                 .delete()
                 .eq('id', id)
-                .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+                .eq('user_id', user.id);
 
               if (error) {
-                // Reverter a atualização otimista
                 setItems(previousItems);
                 throw error;
               }
@@ -299,7 +332,7 @@ export default function InventoryScreen() {
               Alert.alert('Sucesso', 'Item excluído com sucesso!');
             } catch (error: any) {
               console.error('Erro ao excluir item:', error);
-              Alert.alert('Erro', 'Não foi possível excluir o item');
+              Alert.alert('Erro', `Não foi possível excluir o item: ${error.message}`);
             }
           },
         },
@@ -309,7 +342,6 @@ export default function InventoryScreen() {
 
   const updateQuantity = async (id: number, newQuantity: number) => {
     try {
-      // Atualização otimista
       const previousItems = [...items];
       const item = items.find(item => item.id === id);
       if (!item) return;
@@ -325,6 +357,12 @@ export default function InventoryScreen() {
           : item
       ));
 
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        setItems(previousItems);
+        throw new Error('Usuário não autenticado.');
+      }
+
       const { error } = await supabase
         .from('inventory')
         .update({
@@ -332,19 +370,18 @@ export default function InventoryScreen() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+        .eq('user_id', user.id);
 
       if (error) {
-        // Reverter a atualização otimista
         setItems(previousItems);
         throw error;
       }
 
-      // Recarregar os dados para sincronizar needs_restock
+      // Recarregar para sincronizar needs_restock
       await loadInventory();
     } catch (error: any) {
       console.error('Erro ao atualizar quantidade:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar a quantidade');
+      Alert.alert('Erro', `Não foi possível atualizar a quantidade: ${error.message}`);
     }
   };
 
@@ -450,88 +487,102 @@ export default function InventoryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Controle de Estoque</Text>
-        <TouchableOpacity
-          onPress={() => openModal()}
-          style={styles.addButton}
-        >
-          <Ionicons name="add" size={24} color={Colors.light.textWhite} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={Colors.light.mutedText} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar itens..."
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
-        <TouchableOpacity
-          onPress={() => setSelectedCategory('todos')}
-          style={[styles.filterChip, selectedCategory === 'todos' && styles.filterChipActive]}
-        >
-          <Text style={[styles.filterText, selectedCategory === 'todos' && styles.filterTextActive]}>
-            Todos
-          </Text>
-        </TouchableOpacity>
-
-        {CATEGORIES.map(category => (
-          <TouchableOpacity
-            key={category.value}
-            onPress={() => setSelectedCategory(category.value)}
-            style={[styles.filterChip, selectedCategory === category.value && styles.filterChipActive]}
-          >
-            <Ionicons
-              name={category.icon as any}
-              size={16}
-              color={selectedCategory === category.value ? Colors.light.textWhite : Colors.light.primary}
-              style={styles.filterIcon}
-            />
-            <Text style={[styles.filterText, selectedCategory === category.value && styles.filterTextActive]}>
-              {category.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-
-        <TouchableOpacity
-          onPress={() => setShowOnlyRestock(!showOnlyRestock)}
-          style={[styles.filterChip, showOnlyRestock && styles.restockFilterActive]}
-        >
-          <Ionicons
-            name="alert-circle"
-            size={16}
-            color={showOnlyRestock ? Colors.light.textWhite : Colors.light.warning}
-            style={styles.filterIcon}
-          />
-          <Text style={[styles.filterText, showOnlyRestock && styles.filterTextActive]}>
-            Repor
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={64} color={Colors.light.mutedText} />
-            <Text style={styles.emptyText}>Nenhum item encontrado</Text>
-            <Text style={styles.emptySubtext}>
-              {searchText || selectedCategory !== 'todos' || showOnlyRestock
-                ? 'Tente ajustar os filtros de busca'
-                : 'Adicione o primeiro item ao seu estoque'}
-            </Text>
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.light.primary} />
+          <Text style={styles.loadingText}>Carregando...</Text>
+        </View>
+      )}
+      {!loading && (
+        <>
+          <View style={styles.header}>
+            <Text style={styles.title}>Controle de Estoque</Text>
+            <AddButton onPress={() => openModal()} />
           </View>
-        }
-      />
+
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color={Colors.light.mutedText} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar itens..."
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
+            <TouchableOpacity
+              onPress={() => setSelectedCategory('todos')}
+              style={[styles.filterChip, selectedCategory === 'todos' && styles.filterChipActive]}
+            >
+              <Text style={[styles.filterText, selectedCategory === 'todos' && styles.filterTextActive]}>
+                Todos
+              </Text>
+            </TouchableOpacity>
+
+            {CATEGORIES.map(category => (
+              <TouchableOpacity
+                key={category.value}
+                onPress={() => setSelectedCategory(category.value)}
+                style={[styles.filterChip, selectedCategory === category.value && styles.filterChipActive]}
+              >
+                <Ionicons
+                  name={category.icon as any}
+                  size={16}
+                  color={selectedCategory === category.value ? Colors.light.textWhite : Colors.light.primary}
+                  style={styles.filterIcon}
+                />
+                <Text style={[styles.filterText, selectedCategory === category.value && styles.filterTextActive]}>
+                  {category.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => setShowOnlyRestock(!showOnlyRestock)}
+              style={[styles.filterChip, showOnlyRestock && styles.restockFilterActive]}
+            >
+              <Ionicons
+                name="alert-circle"
+                size={16}
+                color={showOnlyRestock ? Colors.light.textWhite : Colors.light.warning}
+                style={styles.filterIcon}
+              />
+              <Text style={[styles.filterText, showOnlyRestock && styles.filterTextActive]}>
+                Repor
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          <FlatList
+            data={filteredItems}
+            renderItem={renderItem}
+            keyExtractor={item => item.id.toString()}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="cube-outline" size={64} color={Colors.light.mutedText} />
+                <Text style={styles.emptyText}>
+                  {errorMessage || (searchText || selectedCategory !== 'todos' || showOnlyRestock
+                    ? 'Nenhum item encontrado'
+                    : 'Adicione o primeiro item ao seu estoque')}
+                </Text>
+                {errorMessage && (
+                  <Text style={styles.emptySubtext}>
+                    Verifique sua conexão ou as permissões no banco de dados.
+                  </Text>
+                )}
+                {!errorMessage && (searchText || selectedCategory !== 'todos' || showOnlyRestock) && (
+                  <Text style={styles.emptySubtext}>
+                    Tente ajustar os filtros de busca.
+                  </Text>
+                )}
+              </View>
+            }
+          />
+        </>
+      )}
 
       <Modal
         visible={modalVisible}
@@ -693,6 +744,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.light.mutedText,
+    marginTop: 8,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -705,14 +766,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.text,
-  },
-  addButton: {
-    backgroundColor: Colors.light.primary,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
