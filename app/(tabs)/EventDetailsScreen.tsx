@@ -426,7 +426,7 @@ const EventDetailsScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+        <StatusBar backgroundColor={'#fff'} barStyle="dark-content" />
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: colors.text }]}>Carregando...</Text>
         </View>
@@ -437,7 +437,7 @@ const EventDetailsScreen = () => {
   if (error) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+        <StatusBar backgroundColor={'#fff'} barStyle="dark-content" />
         <View style={styles.errorContainer}>
           <MaterialCommunityIcons name="alert-circle" size={48} color={colors.illustrationOrange} />
           <Text style={[styles.errorText, { color: colors.text }]}>
@@ -458,7 +458,7 @@ const EventDetailsScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+      <StatusBar backgroundColor={'#fff'} barStyle="dark-content" />
 
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>

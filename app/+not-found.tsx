@@ -8,7 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 export default function NotFoundScreen() {
   const { isDark, toggleTheme } = useTheme();
-  const theme = isDark ? Colors.dark : Colors.light;
+  const theme = Colors.light;
   const router = useRouter();
 
   const handleGoHome = () => {

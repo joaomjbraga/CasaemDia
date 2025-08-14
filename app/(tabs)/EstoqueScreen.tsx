@@ -31,6 +31,7 @@ interface InventoryItem {
   needs_restock: boolean;
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
 
 const CATEGORIES = [
@@ -68,6 +69,18 @@ export default function InventoryScreen() {
 
   useEffect(() => {
     loadInventory();
+
+    // Monitorar estado de autenticação
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Evento de autenticação:', event, 'Sessão:', session);
+      if (!session) {
+        Alert.alert('Erro', 'Sessão expirada. Faça login novamente.');
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -76,9 +89,9 @@ export default function InventoryScreen() {
 
   const loadInventory = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Usuário autenticado:', user?.id);
+      if (authError || !user) {
         Alert.alert('Erro', 'Usuário não autenticado');
         return;
       }
@@ -104,17 +117,14 @@ export default function InventoryScreen() {
   const filterItems = () => {
     let filtered = items;
 
-    // Filtrar por categoria
     if (selectedCategory !== 'todos') {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
 
-    // Filtrar apenas itens que precisam de reposição
     if (showOnlyRestock) {
       filtered = filtered.filter(item => item.needs_restock);
     }
 
-    // Filtrar por texto de busca
     if (searchText) {
       filtered = filtered.filter(item =>
         item.name.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -170,53 +180,92 @@ export default function InventoryScreen() {
 
   const saveItem = async () => {
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Usuário autenticado:', user?.id);
+      if (authError || !user) {
+        console.error('Erro de autenticação:', authError);
+        Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
+        return;
+      }
+
       if (!form.name.trim()) {
         Alert.alert('Erro', 'Nome do item é obrigatório');
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
+      const currentQuantity = parseInt(form.current_quantity) || 0;
+      const minimumQuantity = parseInt(form.minimum_quantity) || 1;
       const itemData = {
         user_id: user.id,
         name: form.name.trim(),
         category: form.category,
-        current_quantity: parseInt(form.current_quantity) || 0,
-        minimum_quantity: parseInt(form.minimum_quantity) || 1,
+        current_quantity: currentQuantity,
+        minimum_quantity: minimumQuantity,
         unit: form.unit,
         expiration_date: form.expiration_date ? form.expiration_date.toISOString().split('T')[0] : null,
         location: form.location.trim() || null,
         notes: form.notes.trim() || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
-      let error;
+      // Atualização otimista
+      let previousItems = [...items];
+      let tempId: number | null = null;
+      if (editingItem) {
+        setItems(items.map(item =>
+          item.id === editingItem.id
+            ? { ...item, ...itemData, id: editingItem.id, needs_restock: currentQuantity <= minimumQuantity }
+            : item
+        ));
+      } else {
+        tempId = Date.now(); // Usar timestamp como ID temporário
+        setItems([...items, { ...itemData, id: tempId, needs_restock: currentQuantity <= minimumQuantity }]);
+      }
 
+      let error;
       if (editingItem) {
         const { error: updateError } = await supabase
           .from('inventory')
           .update(itemData)
-          .eq('id', editingItem.id);
+          .eq('id', editingItem.id)
+          .eq('user_id', user.id);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase
+        const { error: insertError, data } = await supabase
           .from('inventory')
-          .insert([itemData]);
+          .insert([itemData])
+          .select()
+          .single();
         error = insertError;
+        if (data && tempId) {
+          // Atualizar o ID temporário com o ID real retornado pelo Supabase
+          setItems(items =>
+            items.map(item =>
+              item.id === tempId ? { ...item, id: data.id, needs_restock: data.needs_restock } : item
+            )
+          );
+        }
       }
 
-      if (error) throw error;
+      if (error) {
+        // Reverter a atualização otimista
+        setItems(previousItems);
+        console.error('Erro do Supabase:', error);
+        throw error;
+      }
+
+      // Recarregar os dados para sincronizar needs_restock
+      await loadInventory();
 
       closeModal();
-      loadInventory();
-
       Alert.alert(
         'Sucesso',
         editingItem ? 'Item atualizado com sucesso!' : 'Item adicionado com sucesso!'
       );
     } catch (error: any) {
       console.error('Erro ao salvar item:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o item');
+      Alert.alert('Erro', `Não foi possível salvar o item: ${error.message}`);
     }
   };
 
@@ -231,14 +280,22 @@ export default function InventoryScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Atualização otimista
+              const previousItems = [...items];
+              setItems(items.filter(item => item.id !== id));
+
               const { error } = await supabase
                 .from('inventory')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
-              if (error) throw error;
+              if (error) {
+                // Reverter a atualização otimista
+                setItems(previousItems);
+                throw error;
+              }
 
-              loadInventory();
               Alert.alert('Sucesso', 'Item excluído com sucesso!');
             } catch (error: any) {
               console.error('Erro ao excluir item:', error);
@@ -252,14 +309,39 @@ export default function InventoryScreen() {
 
   const updateQuantity = async (id: number, newQuantity: number) => {
     try {
+      // Atualização otimista
+      const previousItems = [...items];
+      const item = items.find(item => item.id === id);
+      if (!item) return;
+
+      setItems(items.map(item =>
+        item.id === id
+          ? {
+            ...item,
+            current_quantity: Math.max(0, newQuantity),
+            needs_restock: Math.max(0, newQuantity) <= item.minimum_quantity,
+            updated_at: new Date().toISOString(),
+          }
+          : item
+      ));
+
       const { error } = await supabase
         .from('inventory')
-        .update({ current_quantity: Math.max(0, newQuantity) })
-        .eq('id', id);
+        .update({
+          current_quantity: Math.max(0, newQuantity),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
-      if (error) throw error;
+      if (error) {
+        // Reverter a atualização otimista
+        setItems(previousItems);
+        throw error;
+      }
 
-      loadInventory();
+      // Recarregar os dados para sincronizar needs_restock
+      await loadInventory();
     } catch (error: any) {
       console.error('Erro ao atualizar quantidade:', error);
       Alert.alert('Erro', 'Não foi possível atualizar a quantidade');
@@ -378,7 +460,6 @@ export default function InventoryScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Barra de busca */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={Colors.light.mutedText} />
         <TextInput
@@ -389,7 +470,6 @@ export default function InventoryScreen() {
         />
       </View>
 
-      {/* Filtros */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
         <TouchableOpacity
           onPress={() => setSelectedCategory('todos')}
@@ -434,7 +514,6 @@ export default function InventoryScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Lista de itens */}
       <FlatList
         data={filteredItems}
         renderItem={renderItem}
@@ -454,7 +533,6 @@ export default function InventoryScreen() {
         }
       />
 
-      {/* Modal para adicionar/editar item */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -621,6 +699,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 16,
+    paddingTop: 50
   },
   title: {
     fontSize: 28,
@@ -928,4 +1007,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.light.textWhite,
   },
-})
+});

@@ -230,7 +230,7 @@ const CalendarScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar backgroundColor={colors.background} barStyle="dark-content" />
+      <StatusBar backgroundColor={'#fff'} barStyle="dark-content" />
       <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Calendário</Text>
         <View style={styles.headerButtons}>

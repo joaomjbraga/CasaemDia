@@ -3,7 +3,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from "expo-router";
 import React, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import ConstructionModal from './ConstructionModal';
 
 const { width } = Dimensions.get('window');
 
@@ -23,39 +22,6 @@ export default function QuickActions({ }: QuickActionsProps) {
       </Text>
 
       <View style={styles.quickActionsGrid}>
-        <TouchableOpacity
-          onPress={() => router.push('/(tabs)/shoppinglist')}
-          style={[styles.quickActionItem]}
-          activeOpacity={0.6}
-        >
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name="cart-plus"
-              size={30}
-              color={Colors.light.primary}
-            />
-          </View>
-          <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
-            Lista de Compras
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={openModal}
-          style={[styles.quickActionItem]}
-          activeOpacity={0.6}
-        >
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name="target"
-              size={30}
-              color={Colors.light.primary}
-            />
-          </View>
-          <Text style={[styles.quickActionText, { color: Colors.light.text }]}>
-            Metas
-          </Text>
-        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/ExpenseReportScreen')}
@@ -108,8 +74,6 @@ export default function QuickActions({ }: QuickActionsProps) {
           </Text>
         </TouchableOpacity>
       </View>
-
-      <ConstructionModal visible={modalVisible} onClose={closeModal} />
     </View>
   );
 }
