@@ -1,27 +1,30 @@
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { FamilyMembersProvider } from '@/contexts/FamilyMembersContext';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack, router, useSegments } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
-import 'react-native-reanimated';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Colors from '../constants/Colors';
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { FamilyMembersProvider } from "@/contexts/FamilyMembersContext";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import {
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+} from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import { Stack, router, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
+import "react-native-reanimated";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import Colors from "../constants/Colors";
 
-export { ErrorBoundary } from 'expo-router';
+export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: "(tabs)",
 };
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
   });
 
@@ -55,24 +58,24 @@ function useProtectedRoute() {
   useEffect(() => {
     if (!initialized) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup = segments[0] === "(auth)";
     const isAuthenticated = user && session && user.email;
 
-    console.log('Route protection check:', {
-      segments: segments.join('/'),
+    console.log("Route protection check:", {
+      segments: segments.join("/"),
       inAuthGroup,
       isAuthenticated,
-      userEmail: user?.email
+      userEmail: user?.email,
     });
 
     if (!isAuthenticated && !inAuthGroup) {
       // User is not authenticated but trying to access protected route
-      console.log('Redirecting unauthenticated user to login');
-      router.replace('/(auth)/login');
+      console.log("Redirecting unauthenticated user to login");
+      router.replace("/(auth)/login");
     } else if (isAuthenticated && inAuthGroup) {
       // User is authenticated but on auth screen
-      console.log('Redirecting authenticated user to tabs');
-      router.replace('/(tabs)');
+      console.log("Redirecting authenticated user to tabs");
+      router.replace("/(tabs)");
     }
   }, [user, session, initialized, segments]);
 }
@@ -102,20 +105,17 @@ function RootLayoutNav() {
           <View
             style={{
               flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: '#fff',
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "#fff",
             }}
           >
-            <ActivityIndicator
-              size="large"
-              color={Colors.light.primary}
-            />
+            <ActivityIndicator size="large" color={Colors.light.primary} />
             <Text
               style={{
                 marginTop: 16,
                 fontSize: 16,
-                fontWeight: '500',
+                fontWeight: "500",
                 color: Colors.light.secondary,
               }}
             >
@@ -133,7 +133,7 @@ function RootLayoutNav() {
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: 'slide_from_right',
+            animation: "slide_from_right",
           }}
         >
           {/* Protected routes - only accessible when authenticated */}
@@ -167,7 +167,7 @@ function RootLayoutNav() {
             options={{
               headerShown: false,
               gestureEnabled: true,
-              presentation: 'modal',
+              presentation: "modal",
             }}
           />
         </Stack>
